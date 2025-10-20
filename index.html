@@ -274,9 +274,9 @@
             height: 100%;
             border: 3px solid #d4af37;
             border-radius: 50%;
-            opacity: 0.2;
+            opacity: 0;
             animation: distant-pulse 8s ease-in-out infinite;
-            box-shadow: 
+            box-shadow:
                 0 0 100px rgba(212, 175, 55, 0.3),
                 inset 0 0 100px rgba(212, 175, 55, 0.1),
                 0 150px 200px rgba(212, 175, 55, 0.15);
@@ -507,7 +507,7 @@
             border: 2px solid #d4af37;
             border-radius: 10px;
             padding: 50px;
-            z-index: 300;
+            z-index: 500;
             opacity: 0;
             pointer-events: none;
             overflow-y: auto;
@@ -855,8 +855,7 @@
         <div id="blogContent"></div>
     </div>
 
-    <script>
-        // ==================== DATA ====================
+        <script>
         const SEGMENTS = [
             {
                 time: '2025-10-20T19:04:00+08:00',
@@ -868,9 +867,9 @@ At dawn on the twentieth, as you're reading this, we will cross the creek slip b
 
 On the far bank stands the Tree of Ancestors, a crooked elder that drinks from both soil and stream. Each of us takes one leaf, not torn but chosen where it is ready to fall; pressed to the pulse at the wrist, then folded away to mark the way back.
 
-We part at the bridge, each to a direction, each to fetch what does not belong to the forest's law. 
-North for the key that opens and bites shut. 
-East for the bitterness that draws a border and drains will. 
+We part at the bridge, each to a direction, each to fetch what does not belong to the forest's law.
+North for the key that opens and bites shut.
+East for the bitterness that draws a border and drains will.
 West for the faint green light that remembers the dead.`
             },
             {
@@ -980,837 +979,862 @@ The forest exhales. Your room settles. For the first time in years, you are stil
             }
         ];
 
-        const GHOST_QUOTES = [
-            "Water, womb of life, mirror of the night",
-            "We are no longer women. We are vessels.",
-            "Dreams twist, but none of us cry out.",
-            "The hinge bites shut beneath the trespassing foot.",
-            "She will strike the Strigoi with a single blow.",
-            "For the first time in years, you are still without a shadow beside you.",
-            "North for the key that opens and bites shut.",
-            "It shines with memory, not with growth.",
-            "The forest exhales.",
-            "Thunder cracks; the ground shudders; Muma is gone."
-        ];
+        (function() {
+            'use strict';
 
-        // ==================== STATE ====================
-        let singaporeTime = new Date();
-        let availableSegment = -1;
-        let completedSegments = [];
-        let isDisplayingMessage = false;
-        let isRedMode = false;
-        let isBlogMode = false;
-        let shootingInterval = null;
-        let lastCircleProgress = -1; // Track last animation progress
-        let pastSegmentsDelivered = false;
-        let deliveryQueue = [];
+            const SGT_TIMEZONE = 'Asia/Singapore';
+            const BELGRADE_TIMEZONE = 'Europe/Belgrade';
+            const TIME_API_URL = 'https://worldtimeapi.org/api/timezone/Asia/Singapore';
+            const BLOOD_MOON_START = new Date('2025-10-20T22:00:00Z');
+            const BLOOD_MOON_END = new Date('2025-10-20T22:30:00Z');
+            const BLOG_MODE_KEY = 'act2BlogMode';
+            const SEGMENT_TIMES = SEGMENTS.map(segment => new Date(segment.time));
 
-        // ==================== LOGGING SYSTEM ====================
-        const EventLogger = {
-            logs: [],
-            sessionId: null,
-            
-            init() {
-                // Generate unique session ID
-                this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                // Load existing logs from localStorage
-                const stored = localStorage.getItem('summoningLogs');
-                if (stored) {
+            const ghostQuotes = [
+                'Water, womb of life, mirror of the night',
+                'We are no longer women. We are vessels.',
+                'Dreams twist, but none of us cry out.',
+                'The hinge bites shut beneath the trespassing foot.',
+                'She will strike the Strigoi with a single blow.',
+                'For the first time in years, you are still without a shadow beside you.',
+                'North for the key that opens and bites shut.',
+                'It shines with memory, not with growth.',
+                'The forest exhales.',
+                'Thunder cracks; the ground shudders; Muma is gone.'
+            ];
+
+            class DeviceTimeStrategy {
+                now() {
+                    const now = new Date();
+                    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+                    return new Date(utc + 8 * 3600000);
+                }
+            }
+
+            class ApiTimeStrategy {
+                async fetch() {
+                    const response = await fetch(TIME_API_URL, { cache: 'no-store' });
+                    if (!response.ok) {
+                        throw new Error('Time API response not ok');
+                    }
+                    const data = await response.json();
+                    if (!data.datetime) {
+                        throw new Error('Time API missing datetime');
+                    }
+                    return new Date(data.datetime);
+                }
+            }
+
+            class TimeProvider {
+                constructor() {
+                    this.apiStrategy = new ApiTimeStrategy();
+                    this.deviceStrategy = new DeviceTimeStrategy();
+                    this.mode = 'api';
+                    this.backoff = 5000;
+                    this.maxBackoff = 600000;
+                    this.refreshInterval = 30000;
+                    this.lastApiTime = null;
+                    this.lastSyncStamp = null;
+                    this.nextApiAttempt = 0;
+                    this.fetchPromise = null;
+                }
+
+                async getCurrentTime() {
+                    const now = Date.now();
+
+                    if (this.mode === 'api') {
+                        if (!this.lastApiTime || !this.lastSyncStamp || now - this.lastSyncStamp > this.refreshInterval) {
+                            await this.refreshFromApi();
+                        }
+                        if (this.lastApiTime && this.lastSyncStamp) {
+                            return new Date(this.lastApiTime.getTime() + (Date.now() - this.lastSyncStamp));
+                        }
+                        return this.deviceStrategy.now();
+                    }
+
+                    if (now >= this.nextApiAttempt) {
+                        await this.refreshFromApi();
+                        if (this.mode === 'api' && this.lastApiTime && this.lastSyncStamp) {
+                            return new Date(this.lastApiTime.getTime() + (Date.now() - this.lastSyncStamp));
+                        }
+                    }
+
+                    return this.deviceStrategy.now();
+                }
+
+                async refreshFromApi() {
+                    const now = Date.now();
+                    if (this.fetchPromise) {
+                        return this.fetchPromise;
+                    }
+                    if (this.mode === 'device' && now < this.nextApiAttempt) {
+                        return null;
+                    }
+
+                    this.fetchPromise = (async () => {
+                        try {
+                            const apiTime = await this.apiStrategy.fetch();
+                            if (this.lastApiTime && this.lastSyncStamp) {
+                                const predicted = new Date(this.lastApiTime.getTime() + (Date.now() - this.lastSyncStamp));
+                                const drift = Math.abs(apiTime.getTime() - predicted.getTime());
+                                if (drift > 10000) {
+                                    this.switchToDevice();
+                                    return;
+                                }
+                            }
+                            this.lastApiTime = apiTime;
+                            this.lastSyncStamp = Date.now();
+                            this.mode = 'api';
+                            this.backoff = 5000;
+                            this.nextApiAttempt = Date.now() + this.refreshInterval;
+                        } catch (error) {
+                            this.switchToDevice();
+                        } finally {
+                            this.fetchPromise = null;
+                        }
+                    })();
+
+                    return this.fetchPromise;
+                }
+
+                switchToDevice() {
+                    this.mode = 'device';
+                    this.lastApiTime = null;
+                    this.lastSyncStamp = null;
+                    this.nextApiAttempt = Date.now() + this.backoff;
+                    this.backoff = Math.min(this.backoff * 2, this.maxBackoff);
+                }
+            }
+
+            class MoonController {
+                constructor(universe, circle, energy) {
+                    this.universe = universe;
+                    this.circle = circle;
+                    this.energy = energy;
+                    this.mode = 'hidden';
+                    this.longPhase = null;
+                    this.finaleTimer = null;
+                    this.progress = 0;
+                }
+
+                applyProgress(progress) {
+                    const clamped = Math.max(0, Math.min(1, progress));
+                    this.progress = clamped;
+                    const baseSize = 600;
+                    const maxSize = Math.min(window.innerWidth, window.innerHeight) * 1.4;
+                    const currentSize = baseSize + (maxSize - baseSize) * clamped;
+
+                    this.universe.style.width = currentSize + 'px';
+                    this.universe.style.height = currentSize + 'px';
+                    this.universe.style.top = '50%';
+                    this.universe.style.transform = 'translate(-50%, -60%)';
+
+                    const energySize = 400 + (currentSize - baseSize) * 0.6;
+                    this.energy.style.width = energySize + 'px';
+                    this.energy.style.height = energySize + 'px';
+
+                    if (clamped === 0) {
+                        this.circle.style.opacity = '0';
+                    } else {
+                        this.circle.style.opacity = String(0.2 + clamped * 0.8);
+                    }
+                    this.circle.style.borderWidth = (3 + clamped * 9) + 'px';
+                    const glow = 120 + clamped * 220;
+                    const inset = glow * 0.6;
+                    this.circle.style.boxShadow = `0 0 ${glow}px rgba(212, 175, 55, ${0.25 + clamped * 0.45}), inset 0 0 ${inset}px rgba(212, 175, 55, ${0.15 + clamped * 0.4})`;
+
+                    if (clamped >= 0.99) {
+                        this.circle.classList.add('intense');
+                    } else {
+                        this.circle.classList.remove('intense');
+                    }
+                }
+
+                clearTimers() {
+                    if (this.finaleTimer) {
+                        clearTimeout(this.finaleTimer);
+                        this.finaleTimer = null;
+                    }
+                }
+
+                setHiddenImmediate() {
+                    this.clearTimers();
+                    this.mode = 'hidden';
+                    this.longPhase = null;
+                    this.applyProgress(0);
+                    this.circle.classList.remove('intense');
+                }
+
+                showFull() {
+                    this.clearTimers();
+                    this.mode = 'available';
+                    this.longPhase = null;
+                    this.applyProgress(1);
+                }
+
+                startLongPhase(segmentIndex, endTime, currentTime) {
+                    const startTime = new Date(endTime.getTime() - 3600000);
+                    this.longPhase = { segmentIndex, startTime, endTime };
+                    this.mode = 'longPhase';
+                    this.update(currentTime);
+                }
+
+                clearLongPhase() {
+                    if (this.mode === 'longPhase') {
+                        this.setHiddenImmediate();
+                    }
+                    this.longPhase = null;
+                }
+
+                update(currentTime) {
+                    if (this.mode !== 'longPhase' || !this.longPhase) {
+                        return;
+                    }
+                    if (currentTime < this.longPhase.startTime) {
+                        this.applyProgress(0);
+                        return;
+                    }
+                    if (currentTime >= this.longPhase.endTime) {
+                        this.setHiddenImmediate();
+                        this.longPhase = null;
+                        return;
+                    }
+                    const total = this.longPhase.endTime.getTime() - this.longPhase.startTime.getTime();
+                    const elapsed = currentTime.getTime() - this.longPhase.startTime.getTime();
+                    const progress = total === 0 ? 1 : elapsed / total;
+                    this.applyProgress(progress);
+                }
+
+                playFinale(duration) {
+                    this.clearTimers();
+                    this.mode = 'finale';
+                    this.longPhase = null;
+                    this.applyProgress(1);
+                    this.circle.classList.add('intense');
+                    return new Promise(resolve => {
+                        this.finaleTimer = setTimeout(() => {
+                            this.finaleTimer = null;
+                            resolve();
+                        }, duration);
+                    });
+                }
+            }
+
+            class RingController {
+                constructor(element, circle) {
+                    this.element = element;
+                    this.circle = circle;
+                }
+
+                setAvailable(isAvailable) {
+                    if (isAvailable) {
+                        this.element.classList.add('ready', 'intense');
+                        this.circle.classList.add('intense');
+                    } else {
+                        this.element.classList.remove('ready', 'intense');
+                        this.circle.classList.remove('intense');
+                    }
+                }
+            }
+
+            class QueueManager {
+                constructor(callback) {
+                    this.callback = callback;
+                    this.queue = [];
+                    this.known = new Set();
+                    this.processing = false;
+                    this.timer = null;
+                    this.pendingStart = null;
+                }
+
+                enqueue(indices) {
+                    let added = false;
+                    indices.forEach(index => {
+                        if (this.known.has(index)) {
+                            return;
+                        }
+                        this.queue.push(index);
+                        this.known.add(index);
+                        added = true;
+                    });
+                    if (!added) {
+                        return;
+                    }
+                    this.queue.sort((a, b) => SEGMENT_TIMES[a] - SEGMENT_TIMES[b]);
+                    this.process();
+                }
+
+                has(index) {
+                    return this.known.has(index);
+                }
+
+                clear() {
+                    this.queue = [];
+                    this.known.clear();
+                    clearTimeout(this.timer);
+                    this.timer = null;
+                    this.processing = false;
+                    this.pendingStart = null;
+                }
+
+                async process() {
+                    if (this.processing || this.queue.length === 0) {
+                        return;
+                    }
+                    const now = Date.now();
+                    if (this.pendingStart && now < this.pendingStart) {
+                        clearTimeout(this.timer);
+                        this.timer = setTimeout(() => this.process(), this.pendingStart - now);
+                        return;
+                    }
+
+                    const index = this.queue.shift();
+                    this.processing = true;
+                    const startTime = Date.now();
+                    this.pendingStart = startTime + scaled(60000);
+
                     try {
-                        this.logs = JSON.parse(stored);
-                    } catch (e) {
-                        this.logs = [];
+                        await this.callback(index);
+                    } finally {
+                        this.known.delete(index);
+                        this.processing = false;
+                        const delay = Math.max(0, this.pendingStart - Date.now());
+                        if (this.queue.length > 0) {
+                            clearTimeout(this.timer);
+                            this.timer = setTimeout(() => this.process(), delay);
+                        }
                     }
                 }
-                
-                // Log page load
-                this.log('PAGE_LOAD', {
-                    userAgent: navigator.userAgent,
-                    screenSize: `${window.innerWidth}x${window.innerHeight}`,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                });
-                
-                // Save logs periodically
-                setInterval(() => this.save(), 30000); // Every 30 seconds
-                
-                // Save on page unload
-                window.addEventListener('beforeunload', () => this.save());
-                
-                console.log('📊 Logging initialized. Session ID:', this.sessionId);
-            },
-            
-            log(eventType, data = {}) {
-                const entry = {
-                    sessionId: this.sessionId,
-                    timestamp: new Date().toISOString(),
-                    singaporeTime: singaporeTime.toISOString(),
-                    eventType: eventType,
-                    data: data
-                };
-                
-                this.logs.push(entry);
-                console.log('📝 LOG:', eventType, data);
-                
-                // Auto-save after important events
-                if (['SEGMENT_CLICKED', 'RED_MODE_START', 'BLOG_TRANSFORM'].includes(eventType)) {
-                    this.save();
+            }
+
+            const state = {
+                currentTime: null,
+                availableSegment: null,
+                isMessageActive: false,
+                initialQueueBuilt: false,
+                bloodMoonActivated: false,
+                bloodMoonActive: false,
+                ghostInterval: null,
+                shootingInterval: null,
+                blogMode: localStorage.getItem(BLOG_MODE_KEY) === 'true',
+                completedSegments: new Set()
+            };
+
+            const segmentStatus = SEGMENTS.map(() => 'pending');
+
+            const timeProvider = window.__ACT2_TIME_PROVIDER__ || new TimeProvider();
+
+            const singaporeClock = document.getElementById('singaporeClock');
+            const belgradeClock = document.getElementById('belgradeClock');
+            const messageDisplay = document.getElementById('messageDisplay');
+            const messageText = document.getElementById('messageText');
+            const ringElement = document.getElementById('receiveRing');
+            const frontRing = document.getElementById('frontRing');
+            const circleElement = document.getElementById('distantCircle');
+            const backgroundUniverse = document.querySelector('.background-universe');
+            const energyElement = document.querySelector('.distant-energy');
+            const runeElements = Array.from(document.querySelectorAll('.rune'));
+            const blogPost = document.getElementById('blogPost');
+            const blogContent = document.getElementById('blogContent');
+            const shootingContainer = document.getElementById('shootingContainer');
+            const starsContainer = document.getElementById('stars');
+
+            const moonController = new MoonController(backgroundUniverse, circleElement, energyElement);
+            const ringController = new RingController(ringElement, circleElement);
+            const queueManager = new QueueManager(deliverQueuedSegment);
+
+            const singaporeFormatter = new Intl.DateTimeFormat('en-GB', {
+                timeZone: SGT_TIMEZONE,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            const belgradeFormatter = new Intl.DateTimeFormat('en-GB', {
+                timeZone: BELGRADE_TIMEZONE,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            function createStars() {
+                if (!starsContainer) {
+                    return;
                 }
-            },
-            
-            save() {
-                try {
-                    localStorage.setItem('summoningLogs', JSON.stringify(this.logs));
-                    console.log('💾 Logs saved. Total entries:', this.logs.length);
-                } catch (e) {
-                    console.error('Failed to save logs:', e);
-                }
-            },
-            
-            download() {
-                const dataStr = JSON.stringify(this.logs, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `summoning_logs_${this.sessionId}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                console.log('📥 Logs downloaded');
-            },
-            
-            clear() {
-                this.logs = [];
-                localStorage.removeItem('summoningLogs');
-                console.log('🗑️ Logs cleared');
-            },
-            
-            getReport() {
-                const report = {
-                    totalSessions: new Set(this.logs.map(l => l.sessionId)).size,
-                    totalEvents: this.logs.length,
-                    currentSession: this.sessionId,
-                    events: {}
-                };
-                
-                this.logs.forEach(log => {
-                    if (!report.events[log.eventType]) {
-                        report.events[log.eventType] = 0;
+                const totalStars = 120;
+                for (let i = 0; i < totalStars; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    const depthRoll = Math.random();
+                    if (depthRoll < 0.5) {
+                        star.classList.add('far');
+                        const size = Math.random() * 1.5 + 0.3;
+                        star.style.width = size + 'px';
+                        star.style.height = size + 'px';
+                    } else if (depthRoll < 0.85) {
+                        star.classList.add('mid');
+                        const size = Math.random() * 2 + 0.8;
+                        star.style.width = size + 'px';
+                        star.style.height = size + 'px';
+                    } else {
+                        star.classList.add('near');
+                        const size = Math.random() * 2.5 + 1.5;
+                        star.style.width = size + 'px';
+                        star.style.height = size + 'px';
                     }
-                    report.events[log.eventType]++;
-                });
-                
-                return report;
-            }
-        };
-
-        // Initialize logging
-        EventLogger.init();
-
-        // Make logger globally accessible for debugging
-        window.EventLogger = EventLogger;
-
-        // ==================== INITIALIZATION ====================
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('test') === 'true') {
-            activateTestMode();
-        }
-
-        // Check if blog mode was previously activated
-        if (localStorage.getItem('isBlogMode') === 'true') {
-            isBlogMode = true;
-        }
-
-        // ==================== TIME MANAGEMENT ====================
-        async function getSingaporeTime() {
-            try {
-                const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Singapore', {
-                    cache: 'no-cache'
-                });
-                const data = await response.json();
-                return new Date(data.datetime);
-            } catch (error) {
-                return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
-            }
-        }
-
-        function updateClocks() {
-            const belgradeTime = new Date(singaporeTime.toLocaleString('en-US', { timeZone: 'Europe/Belgrade' }));
-
-            document.getElementById('singaporeClock').textContent = 
-                singaporeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-            document.getElementById('belgradeClock').textContent = 
-                belgradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-        }
-
-        // ==================== STARS ====================
-        function createStars() {
-            const container = document.getElementById('stars');
-            
-            // Create stars with depth layers
-            for (let i = 0; i < 150; i++) { // Increased from 120 to 150
-                const star = document.createElement('div');
-                star.className = 'star';
-                
-                // Position
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                
-                // Assign depth layer (far: 50%, mid: 35%, near: 15%)
-                const depthRoll = Math.random();
-                if (depthRoll < 0.5) {
-                    star.classList.add('far');
-                    // Far stars: smaller
-                    const size = Math.random() * 1.5 + 0.3;
-                    star.style.width = size + 'px';
-                    star.style.height = size + 'px';
-                } else if (depthRoll < 0.85) {
-                    star.classList.add('mid');
-                    // Mid stars: medium
-                    const size = Math.random() * 2 + 0.8;
-                    star.style.width = size + 'px';
-                    star.style.height = size + 'px';
-                } else {
-                    star.classList.add('near');
-                    // Near stars: larger, brighter
-                    const size = Math.random() * 2.5 + 1.5;
-                    star.style.width = size + 'px';
-                    star.style.height = size + 'px';
+                    star.style.left = Math.random() * 100 + '%';
+                    star.style.top = Math.random() * 100 + '%';
+                    star.style.animationDelay = Math.random() * 4 + 's';
+                    starsContainer.appendChild(star);
                 }
-                
-                // Randomize animation timing for natural feel
-                star.style.animationDelay = Math.random() * 4 + 's';
-                
-                container.appendChild(star);
             }
-        }
 
-        // ==================== GHOST QUOTES ====================
-        function showGhostQuote() {
-            if (isBlogMode) return;
-            
-            const quote = GHOST_QUOTES[Math.floor(Math.random() * GHOST_QUOTES.length)];
-            const element = document.createElement('div');
-            element.className = 'ghost-quote';
-            element.textContent = quote;
-            
-            element.style.top = Math.random() * 60 + 20 + '%';
-            element.style.left = Math.random() * 50 + 25 + '%';
-            
-            document.body.appendChild(element);
+            function updateClocks() {
+                if (!state.currentTime) {
+                    return;
+                }
+                singaporeClock.textContent = singaporeFormatter.format(state.currentTime);
+                belgradeClock.textContent = belgradeFormatter.format(state.currentTime);
+            }
 
-            setTimeout(() => {
-                element.style.transition = 'opacity 4s ease-in';
-                element.style.opacity = Math.random() * 0.12 + 0.05;
-            }, 100);
+            function showGhostQuote() {
+                if (state.blogMode) {
+                    return;
+                }
+                const quote = ghostQuotes[Math.floor(Math.random() * ghostQuotes.length)];
+                const element = document.createElement('div');
+                element.className = 'ghost-quote';
+                element.textContent = quote;
+                element.style.top = Math.random() * 60 + 20 + '%';
+                element.style.left = Math.random() * 50 + 25 + '%';
+                document.body.appendChild(element);
+                requestAnimationFrame(() => {
+                    element.style.transition = 'opacity 4s ease-in';
+                    element.style.opacity = (Math.random() * 0.12 + 0.05).toFixed(2);
+                });
+                setTimeout(() => {
+                    element.style.transition = 'opacity 4s ease-out';
+                    element.style.opacity = '0';
+                    setTimeout(() => element.remove(), 4000);
+                }, 12000);
+            }
 
-            setTimeout(() => {
-                element.style.transition = 'opacity 4s ease-out';
-                element.style.opacity = 0;
-                setTimeout(() => element.remove(), 4000);
-            }, 12000);
-        }
+            function startGhostQuotes() {
+                showGhostQuote();
+                state.ghostInterval = setInterval(showGhostQuote, 15000);
+            }
 
-        // ==================== SEGMENT AVAILABILITY ====================
-        function checkSegmentAvailability() {
-            if (isBlogMode) return;
+            function stopGhostQuotes() {
+                if (state.ghostInterval) {
+                    clearInterval(state.ghostInterval);
+                    state.ghostInterval = null;
+                }
+            }
 
-            // On first load, check all segments and queue past ones
-            if (!pastSegmentsDelivered) {
-                let pastSegments = [];
-                
+            function activateBloodMoon() {
+                if (state.bloodMoonActive || state.blogMode) {
+                    return;
+                }
+                state.bloodMoonActive = true;
+                state.bloodMoonActivated = true;
+                document.body.classList.add('red-mode');
+                moonController.setHiddenImmediate();
+                ringController.setAvailable(false);
+                startShootingRings();
+            }
+
+            function deactivateBloodMoon() {
+                if (!state.bloodMoonActive) {
+                    return;
+                }
+                state.bloodMoonActive = false;
+                document.body.classList.remove('red-mode');
+                stopShootingRings();
+            }
+
+            function startShootingRings() {
+                if (state.shootingInterval) {
+                    return;
+                }
+                state.shootingInterval = setInterval(() => {
+                    const ring = document.createElement('div');
+                    ring.className = 'shooting-ring';
+                    ring.style.left = Math.random() * 80 + 10 + '%';
+                    ring.style.top = '-140px';
+                    shootingContainer.appendChild(ring);
+                    setTimeout(() => ring.remove(), 2500);
+                }, 500);
+            }
+
+            function stopShootingRings() {
+                if (state.shootingInterval) {
+                    clearInterval(state.shootingInterval);
+                    state.shootingInterval = null;
+                }
+                shootingContainer.innerHTML = '';
+            }
+
+            function updateBloodMoon() {
+                if (!state.currentTime) {
+                    return;
+                }
+                if (!state.bloodMoonActivated && state.currentTime >= BLOOD_MOON_END) {
+                    state.bloodMoonActivated = true;
+                    return;
+                }
+                if (!state.bloodMoonActive && !state.blogMode && state.currentTime >= BLOOD_MOON_START && state.currentTime < BLOOD_MOON_END) {
+                    activateBloodMoon();
+                }
+                if (state.bloodMoonActive && state.currentTime >= BLOOD_MOON_END) {
+                    deactivateBloodMoon();
+                }
+            }
+
+            function buildInitialQueue() {
+                if (state.blogMode || state.initialQueueBuilt || !state.currentTime) {
+                    return;
+                }
+                const overdue = [];
+                SEGMENT_TIMES.forEach((segmentTime, index) => {
+                    if (segmentStatus[index] === 'completed') {
+                        return;
+                    }
+                    if (index === 3) {
+                        if (state.currentTime >= segmentTime) {
+                            overdue.push(index);
+                        }
+                        return;
+                    }
+                    if (state.currentTime >= segmentTime) {
+                        overdue.push(index);
+                    }
+                });
+                if (overdue.length > 0) {
+                    overdue.sort((a, b) => SEGMENT_TIMES[a] - SEGMENT_TIMES[b]);
+                    overdue.forEach(index => {
+                        segmentStatus[index] = 'queued';
+                    });
+                    queueManager.enqueue(overdue);
+                }
+                state.initialQueueBuilt = true;
+            }
+
+            function makeSegmentAvailable(index) {
+                if (state.blogMode) {
+                    return;
+                }
+                segmentStatus[index] = 'available';
+                state.availableSegment = index;
+                ringController.setAvailable(true);
+                moonController.showFull();
+            }
+
+            async function deliverQueuedSegment(index) {
+                if (state.blogMode) {
+                    return;
+                }
+                makeSegmentAvailable(index);
+                await moonController.playFinale(scaled(10000));
+                if (state.availableSegment === index && !state.blogMode) {
+                    await startSegmentDelivery(index, { queued: true });
+                }
+            }
+
+            function updateUpcomingSegments() {
+                if (state.blogMode || !state.currentTime) {
+                    return;
+                }
+
+                if (state.availableSegment !== null) {
+                    return;
+                }
+
+                let nextIndex = null;
+                let nextTime = null;
+
                 for (let i = 0; i < SEGMENTS.length; i++) {
-                    if (completedSegments.includes(i)) continue;
-                    
-                    // Special handling for segment 4 (index 3)
-                    if (i === 3) {
-                        // Segment 4 only available on Oct 21 at 7:00
-                        const oct21At7 = new Date('2025-10-21T07:00:00+08:00');
-                        if (singaporeTime >= oct21At7) {
-                            pastSegments.push(i);
+                    if (segmentStatus[i] === 'completed' || segmentStatus[i] === 'queued' || queueManager.has(i)) {
+                        continue;
+                    }
+                    const segmentTime = SEGMENT_TIMES[i];
+                    if (state.currentTime >= segmentTime) {
+                        if (segmentStatus[i] === 'pending') {
+                            if (i === 3) {
+                                const withinExactWindow = state.currentTime >= segmentTime && state.currentTime < new Date(segmentTime.getTime() + 60000);
+                                if (withinExactWindow) {
+                                    makeSegmentAvailable(i);
+                                }
+                            } else {
+                                makeSegmentAvailable(i);
+                            }
                         }
                         continue;
                     }
-                    
-                    const segmentTime = new Date(SEGMENTS[i].time);
-                    if (singaporeTime >= segmentTime) {
-                        pastSegments.push(i);
+                    if (nextTime === null || segmentTime < nextTime) {
+                        nextIndex = i;
+                        nextTime = segmentTime;
                     }
                 }
-                
-                if (pastSegments.length > 0) {
-                    console.log(`📦 Found ${pastSegments.length} past segments to deliver`);
-                    deliveryQueue = pastSegments;
-                    deliverNextInQueue();
-                }
-                
-                pastSegmentsDelivered = true;
-                return;
-            }
 
-            // Normal check for current time matches
-            for (let i = 0; i < SEGMENTS.length; i++) {
-                if (completedSegments.includes(i)) continue;
-                if (availableSegment === i) continue;
-                
-                // Special handling for segment 4
-                if (i === 3) {
-                    const oct21At7 = new Date('2025-10-21T07:00:00+08:00');
-                    if (singaporeTime >= oct21At7 && singaporeTime < new Date(oct21At7.getTime() + 60000)) {
-                        console.log(`✅ Segment 4 now available!`);
-                        makeSegmentAvailable(i);
-                        break;
-                    }
-                    continue;
-                }
-                
-                const segmentTime = new Date(SEGMENTS[i].time);
-                
-                // Check if we're within 1 minute of segment time
-                if (singaporeTime >= segmentTime && singaporeTime < new Date(segmentTime.getTime() + 60000)) {
-                    console.log(`✅ Segment ${i + 1} now available!`);
-                    makeSegmentAvailable(i);
-                    break;
-                }
-            }
-        }
-
-        // Deliver queued segments one by one with 1 minute delay
-        async function deliverNextInQueue() {
-            if (deliveryQueue.length === 0) return;
-            if (isDisplayingMessage) {
-                // Wait and retry
-                setTimeout(deliverNextInQueue, 5000);
-                return;
-            }
-            
-            const nextIndex = deliveryQueue.shift();
-            console.log(`📬 Delivering queued segment ${nextIndex + 1}`);
-            makeSegmentAvailable(nextIndex);
-            
-            // If more in queue, schedule next delivery in 1 minute
-            if (deliveryQueue.length > 0) {
-                setTimeout(deliverNextInQueue, 60000);
-            }
-        }
-
-        function updateDistantCircleJourney() {
-            if (isBlogMode) {
-                resetDistantCircle();
-                return;
-            }
-
-            // If segment is available, show it as fully arrived
-            if (availableSegment !== -1) {
-                animateDistantCircle(1.0); // Full glow
-                return;
-            }
-
-            // No animation - circle stays hidden until segment is available
-            resetDistantCircle();
-        }
-        }
-
-        function resetDistantCircle() {
-            const universe = document.querySelector('.background-universe');
-            const circle = document.getElementById('distantCircle');
-            const energy = document.querySelector('.distant-energy');
-            
-            universe.style.width = '600px';
-            universe.style.height = '600px';
-            universe.style.top = '50%';
-            universe.style.transform = 'translate(-50%, -60%)';
-            
-            energy.style.width = '400px';
-            energy.style.height = '400px';
-            
-            circle.style.opacity = '0.2';
-            circle.style.borderWidth = '3px';
-            circle.style.boxShadow = `
-                0 0 100px rgba(212, 175, 55, 0.3),
-                inset 0 0 100px rgba(212, 175, 55, 0.1),
-                0 150px 200px rgba(212, 175, 55, 0.15)
-            `;
-            circle.classList.remove('approaching');
-            
-            lastCircleProgress = -1; // Reset progress tracking
-        }
-
-        function animateDistantCircle(progress) {
-            // Only update if progress changed significantly (reduce unnecessary updates)
-            if (Math.abs(progress - lastCircleProgress) < 0.005) {
-                return; // Skip if less than 0.5% change
-            }
-            lastCircleProgress = progress;
-            
-            const universe = document.querySelector('.background-universe');
-            const circle = document.getElementById('distantCircle');
-            const energy = document.querySelector('.distant-energy');
-            
-            // Size: starts at 600px, grows to fill most of screen
-            const startSize = 600;
-            const maxSize = Math.min(window.innerWidth, window.innerHeight) * 1.5;
-            const currentSize = startSize + (maxSize - startSize) * easeInOut(progress);
-            
-            // Scale factor for proportional growth
-            const scaleFactor = currentSize / startSize;
-            
-            // Energy lines scale proportionally
-            const energyStartSize = 400;
-            const energyCurrentSize = energyStartSize * scaleFactor;
-            
-            // Position: The circle should stay anchored so it doesn't go below the front ring
-            const minTop = 65;
-            const startTop = 50;
-            const endTop = Math.max(50, minTop);
-            const currentTop = startTop + (endTop - startTop) * easeInOut(progress);
-            
-            // Adjust transform to keep circle properly centered as it grows
-            const translateY = -50 + (10 * progress);
-            
-            // Opacity: grows from 0.2 to 1
-            const opacity = 0.2 + (0.8 * progress);
-            
-            // Border: grows from 3px to 12px (increased from 8px)
-            const borderSize = 3 + (9 * progress);
-            
-            // Enhanced glow intensity - much stronger
-            const baseGlowSize = 150 + (300 * progress); // Increased from 100-250
-            const baseGlowOpacity = 0.5 + (0.5 * progress); // Increased from 0.3-1.0
-            
-            // Check if within 10 minutes (progress > 0.833)
-            const within10Min = progress > 0.833;
-            
-            // Color mixing for final approach - purple and red hues
-            let boxShadowStyle;
-            if (within10Min) {
-                // Calculate intensity of purple/red (increases as we get closer)
-                const finalApproachProgress = (progress - 0.833) / 0.167; // 0 to 1 in last 10 min
-                
-                // Mix gold with purple and red
-                const purpleIntensity = 0.3 * finalApproachProgress;
-                const redIntensity = 0.4 * finalApproachProgress;
-                
-                boxShadowStyle = `
-                    0 0 ${baseGlowSize}px rgba(212, 175, 55, ${baseGlowOpacity}),
-                    0 0 ${baseGlowSize * 0.8}px rgba(138, 43, 226, ${purpleIntensity}),
-                    0 0 ${baseGlowSize * 0.6}px rgba(220, 20, 60, ${redIntensity}),
-                    inset 0 0 ${baseGlowSize * 0.6}px rgba(212, 175, 55, ${baseGlowOpacity * 0.6}),
-                    inset 0 0 ${baseGlowSize * 0.4}px rgba(138, 43, 226, ${purpleIntensity * 0.5}),
-                    0 ${baseGlowSize * 2}px ${baseGlowSize * 3}px rgba(212, 175, 55, ${baseGlowOpacity * 0.4}),
-                    0 ${baseGlowSize * 1.5}px ${baseGlowSize * 2}px rgba(138, 43, 226, ${purpleIntensity * 0.3}),
-                    0 ${baseGlowSize}px ${baseGlowSize * 1.5}px rgba(220, 20, 60, ${redIntensity * 0.3})
-                `;
-            } else {
-                // Normal gold glow - but more intense
-                boxShadowStyle = `
-                    0 0 ${baseGlowSize}px rgba(212, 175, 55, ${baseGlowOpacity}),
-                    inset 0 0 ${baseGlowSize * 0.6}px rgba(212, 175, 55, ${baseGlowOpacity * 0.6}),
-                    0 ${baseGlowSize * 2}px ${baseGlowSize * 3}px rgba(212, 175, 55, ${baseGlowOpacity * 0.4})
-                `;
-            }
-            
-            // Apply styles to universe/circle
-            universe.style.width = currentSize + 'px';
-            universe.style.height = currentSize + 'px';
-            universe.style.top = currentTop + '%';
-            universe.style.transform = `translate(-50%, ${translateY}%)`;
-            
-            circle.style.opacity = opacity;
-            circle.style.borderWidth = borderSize + 'px';
-            circle.style.boxShadow = boxShadowStyle;
-            
-            // Apply styles to energy lines
-            energy.style.width = energyCurrentSize + 'px';
-            energy.style.height = energyCurrentSize + 'px';
-            
-            // Add intense pulse when very close (last 15 minutes = progress > 0.75)
-            if (progress > 0.75) {
-                circle.classList.add('approaching');
-            } else {
-                circle.classList.remove('approaching');
-            }
-        }
-
-        // Easing function for smooth animation
-        function easeInOut(t) {
-            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-        }
-
-        function makeSegmentAvailable(index) {
-            if (completedSegments.includes(index) || availableSegment === index) return;
-            
-            console.log(`🔔 Making segment ${index + 1} available!`);
-            
-            availableSegment = index;
-            const ring = document.getElementById('receiveRing');
-            ring.classList.add('ready', 'intense');
-            
-            const distantCircle = document.getElementById('distantCircle');
-            distantCircle.classList.add('intense');
-            
-            // Show moon at full glow immediately (no animation)
-            animateDistantCircle(1.0);
-            
-            // Log segment availability
-            EventLogger.log('SEGMENT_AVAILABLE', {
-                segmentIndex: index,
-                segmentNumber: index + 1,
-                scheduledTime: SEGMENTS[index].time
-            });
-        }
-
-        // Glow intensity is now handled directly in makeSegmentAvailable
-
-        // ==================== MESSAGE DISPLAY ====================
-        let messageCloseTimeout = null;
-
-        async function displayMessage(index) {
-            if (isDisplayingMessage) return;
-            isDisplayingMessage = true;
-
-            // Log segment click
-            EventLogger.log('SEGMENT_CLICKED', {
-                segmentIndex: index,
-                segmentNumber: index + 1,
-                clickTime: singaporeTime.toISOString()
-            });
-
-            const display = document.getElementById('messageDisplay');
-            const textElement = document.getElementById('messageText');
-            const ring = document.getElementById('receiveRing');
-            
-            ring.classList.remove('ready', 'intense');
-            document.getElementById('distantCircle').classList.remove('intense');
-            
-            // Hide distant circle during message display
-            resetDistantCircle();
-            
-            display.classList.add('active');
-            display.dataset.closeable = 'false'; // Not closeable during animation
-            
-            await conjureText(SEGMENTS[index].text, textElement);
-            
-            // Log message fully displayed
-            EventLogger.log('MESSAGE_DISPLAYED', {
-                segmentIndex: index,
-                segmentNumber: index + 1
-            });
-            
-            // Make message clickable to skip wait
-            let messageClicked = false;
-            display.style.cursor = 'pointer';
-            
-            const clickHandler = () => {
-                messageClicked = true;
-                display.style.cursor = 'default';
-            };
-            
-            display.addEventListener('click', clickHandler);
-            
-            // Wait for click or 2 minutes timeout
-            const displayTime = 120000; // 2 minutes
-            const startTime = Date.now();
-            
-            while (!messageClicked && (Date.now() - startTime) < displayTime) {
-                await sleep(100);
-            }
-            
-            // Clean up click handler
-            display.removeEventListener('click', clickHandler);
-            display.style.cursor = 'default';
-            
-            // Hide message
-            display.classList.remove('active');
-            
-            // Dramatic rune reveal
-            await dramaticRuneReveal(index);
-            
-            // Log completion
-            EventLogger.log('SEGMENT_COMPLETED', {
-                segmentIndex: index,
-                segmentNumber: index + 1
-            });
-            
-            completedSegments.push(index);
-            availableSegment = -1;
-            isDisplayingMessage = false;
-            
-            // If this was the final segment (index 3), transform to blog
-            if (index === 3) {
-                await sleep(2000); // Brief pause before transformation
-                transformToBlog();
-                return; // Don't check for next segment
-            }
-            
-            // Reset circle to normal position after message complete
-            resetDistantCircle();
-            
-            // Check for next segment (will start 2-hour animation if applicable)
-            checkSegmentAvailability();
-        }
-
-        function showRuneMessage(index) {
-            const display = document.getElementById('messageDisplay');
-            const textElement = document.getElementById('messageText');
-            
-            // Log rune click
-            EventLogger.log('RUNE_CLICKED', {
-                segmentIndex: index,
-                segmentNumber: index + 1
-            });
-            
-            textElement.textContent = SEGMENTS[index].text;
-            textElement.style.opacity = '1';
-            textElement.style.transition = '';
-            display.classList.add('active');
-            display.dataset.closeable = 'true'; // Closeable when opened from rune
-            
-            // Clear any existing timeout
-            if (messageCloseTimeout) {
-                clearTimeout(messageCloseTimeout);
-            }
-            
-            // Auto-close after 5 minutes
-            messageCloseTimeout = setTimeout(() => {
-                if (display.classList.contains('active') && display.dataset.closeable === 'true') {
-                    display.classList.remove('active');
-                }
-            }, 300000); // 5 minutes
-        }
-
-        // Close message overlay
-        document.getElementById('messageDisplay').addEventListener('click', function(e) {
-            // If clicking on the overlay itself (not message content) or if closeable
-            if (this.dataset.closeable === 'true') {
-                this.classList.remove('active');
-                if (messageCloseTimeout) {
-                    clearTimeout(messageCloseTimeout);
-                    messageCloseTimeout = null;
-                }
-            }
-        });
-
-        async function dramaticRuneReveal(index) {
-            const rune = document.querySelectorAll('.rune')[index];
-            
-            // Add dramatic reveal animation
-            rune.classList.add('dramatic-reveal');
-            rune.style.opacity = '1';
-            
-            // Wait for animation to complete
-            await sleep(3000);
-            
-            // Remove animation class and add permanent glow
-            rune.classList.remove('dramatic-reveal');
-            rune.classList.add('visible', 'permanent-glow');
-        }
-
-        async function conjureText(text, element) {
-            element.textContent = '';
-            element.style.opacity = '0';
-            
-            // Fade in container
-            setTimeout(() => {
-                element.style.transition = 'opacity 0.5s ease-in';
-                element.style.opacity = '1';
-            }, 100);
-            
-            await sleep(600);
-            
-            // Show gibberish for 5-7 seconds
-            const gibberishDuration = 5000 + Math.random() * 2000; // 5-7 seconds
-            const gibberishChars = 'αβγδεζηθικλμνξοπρστυφχψω∴∵∞∑∏∫√∂∇ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
-            const startTime = Date.now();
-            
-            // Gibberish animation
-            const gibberishInterval = setInterval(() => {
-                let gibberish = '';
-                const lines = Math.floor(Math.random() * 3) + 8; // 8-10 lines of gibberish
-                for (let i = 0; i < lines; i++) {
-                    const lineLength = Math.floor(Math.random() * 30) + 40; // 40-70 chars per line
-                    for (let j = 0; j < lineLength; j++) {
-                        gibberish += gibberishChars[Math.floor(Math.random() * gibberishChars.length)];
-                    }
-                    gibberish += '\n';
-                }
-                element.textContent = gibberish;
-            }, 80); // Update every 80ms
-            
-            // Wait for gibberish duration
-            await sleep(gibberishDuration);
-            
-            // Stop gibberish
-            clearInterval(gibberishInterval);
-            
-            // Shake animation
-            element.style.animation = 'messageShake 0.4s ease-in-out';
-            await sleep(400);
-            
-            // Reveal full text instantly
-            element.textContent = text;
-            element.style.animation = '';
-        }
-
-        // ==================== RUNE INTERACTION ====================
-        document.querySelectorAll('.rune').forEach(rune => {
-            rune.addEventListener('click', function() {
-                const index = parseInt(this.dataset.segment);
-                if (completedSegments.includes(index)) {
-                    showRuneMessage(index);
-                }
-            });
-        });
-
-        // ==================== RING CLICK ====================
-        document.getElementById('frontRing').addEventListener('click', function() {
-            if (availableSegment !== -1 && !isDisplayingMessage) {
-                displayMessage(availableSegment);
-            }
-        });
-
-        // ==================== SPECIAL EVENTS ====================
-        function checkSpecialEvents() {
-            if (isBlogMode) return;
-
-            // Check if it's October 21, 2025
-            const date = singaporeTime.getDate();
-            const month = singaporeTime.getMonth() + 1;
-            const year = singaporeTime.getFullYear();
-            
-            if (!(year === 2025 && month === 10 && date === 21)) return;
-
-            const hour = singaporeTime.getHours();
-            const minute = singaporeTime.getMinutes();
-            
-            // 06:00-06:29 - Full red mode (only if page is open during this time)
-            if (hour === 6 && minute >= 0 && minute < 30) {
-                if (!document.body.classList.contains('red-mode')) {
-                    activateRedMode();
-                }
-            }
-            
-            // 06:30 or later - End red
-            else if (hour === 6 && minute >= 30) {
-                if (document.body.classList.contains('red-mode')) {
-                    deactivateRedMode();
-                }
-            }
-        }
-
-        function activateRedMode() {
-            document.body.classList.add('red-mode');
-            resetDistantCircle();
-            startShootingRings();
-            EventLogger.log('RED_MODE_ACTIVATED');
-            console.log('🔴 Full red mode activated');
-        }
-
-        function startShootingRings() {
-            const container = document.querySelector('.summoning-area');
-            
-            shootingInterval = setInterval(() => {
-                if (!document.body.classList.contains('red-mode')) {
-                    clearInterval(shootingInterval);
+                if (state.availableSegment !== null) {
                     return;
                 }
-                
-                const ring = document.createElement('div');
-                ring.className = 'shooting-ring';
-                container.appendChild(ring);
-                
-                setTimeout(() => ring.remove(), 2500);
-            }, 600);
-        }
 
-        function deactivateRedMode() {
-            document.body.classList.remove('red-mode');
-            isRedMode = false;
-            if (shootingInterval) {
-                clearInterval(shootingInterval);
-                shootingInterval = null;
-            }
-            EventLogger.log('RED_MODE_DEACTIVATED');
-            console.log('✅ Red mode ended');
-        }
-
-        function transformToBlog() {
-            isBlogMode = true;
-            document.body.classList.add('blog-mode');
-            
-            // Save to localStorage for persistence
-            localStorage.setItem('isBlogMode', 'true');
-            
-            EventLogger.log('BLOG_TRANSFORM', {
-                completedSegments: completedSegments.length
-            });
-            
-            const content = document.getElementById('blogContent');
-            SEGMENTS.forEach((segment) => {
-                const lines = segment.text.split('\n\n');
-                
-                lines.forEach((line, i) => {
-                    if (i === 0) {
-                        const h2 = document.createElement('h2');
-                        h2.textContent = line;
-                        content.appendChild(h2);
-                    } else if (line.includes('Majko što')) {
-                        const chant = document.createElement('div');
-                        chant.className = 'chant';
-                        chant.textContent = line;
-                        content.appendChild(chant);
+                if (nextIndex !== null) {
+                    const diff = nextTime.getTime() - state.currentTime.getTime();
+                    if (diff <= 3600000) {
+                        moonController.startLongPhase(nextIndex, nextTime, state.currentTime);
                     } else {
-                        const p = document.createElement('p');
-                        p.textContent = line;
-                        content.appendChild(p);
+                        moonController.clearLongPhase();
+                    }
+                } else {
+                    moonController.clearLongPhase();
+                }
+            }
+
+            function wait(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            function scaled(ms) {
+                const scale = typeof window.__ACT2_TIME_SCALE__ === 'number' ? window.__ACT2_TIME_SCALE__ : 1;
+                return Math.max(0, ms * scale);
+            }
+
+            async function runGibberish(duration) {
+                const characters = 'αβγδεζηθικλμνξοπρστυφχψω∴∵∞∑∏∫√∂∇ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
+                const interval = setInterval(() => {
+                    let gibberish = '';
+                    for (let i = 0; i < 8; i++) {
+                        const lineLength = Math.floor(Math.random() * 30) + 40;
+                        let line = '';
+                        for (let j = 0; j < lineLength; j++) {
+                            line += characters[Math.floor(Math.random() * characters.length)];
+                        }
+                        gibberish += line + '
+';
+                    }
+                    messageText.textContent = gibberish.trimEnd();
+                }, 80);
+                await wait(duration);
+                clearInterval(interval);
+            }
+
+            function waitForMessageClose(timeout) {
+                return new Promise(resolve => {
+                    let resolved = false;
+                    const handleClick = () => {
+                        if (messageDisplay.dataset.closeable === 'true' && !resolved) {
+                            resolved = true;
+                            cleanup();
+                            resolve();
+                        }
+                    };
+                    const timer = setTimeout(() => {
+                        if (!resolved) {
+                            resolved = true;
+                            cleanup();
+                            resolve();
+                        }
+                    }, timeout);
+                    function cleanup() {
+                        messageDisplay.removeEventListener('click', handleClick);
+                        clearTimeout(timer);
+                    }
+                    messageDisplay.addEventListener('click', handleClick);
+                });
+            }
+
+            function closeMessageOverlay() {
+                messageDisplay.classList.remove('active');
+                messageDisplay.dataset.closeable = 'false';
+                messageDisplay.style.cursor = 'default';
+                messageText.textContent = '';
+            }
+
+            async function revealRune(index) {
+                const rune = runeElements[index];
+                if (!rune) {
+                    return;
+                }
+                rune.classList.add('visible');
+                rune.classList.add('dramatic-reveal');
+                await wait(scaled(3000));
+                rune.classList.remove('dramatic-reveal');
+                rune.classList.add('permanent-glow');
+            }
+
+            async function startSegmentDelivery(index, options = {}) {
+                if (state.blogMode || state.isMessageActive) {
+                    return;
+                }
+                state.isMessageActive = true;
+                state.availableSegment = null;
+                if (!options.fromRune) {
+                    segmentStatus[index] = 'delivering';
+                }
+                ringController.setAvailable(false);
+                moonController.setHiddenImmediate();
+
+                messageDisplay.classList.add('active');
+                messageDisplay.dataset.closeable = 'false';
+                messageDisplay.style.cursor = 'default';
+                messageText.textContent = '';
+
+                await runGibberish(scaled(3000));
+
+                messageText.style.animation = 'messageShake 0.4s ease-in-out';
+                await wait(scaled(400));
+                messageText.style.animation = '';
+                messageText.textContent = SEGMENTS[index].text;
+
+                messageDisplay.dataset.closeable = 'true';
+                messageDisplay.style.cursor = 'pointer';
+
+                const autoClose = scaled(options.fromRune ? 300000 : 120000);
+                await waitForMessageClose(autoClose);
+
+                closeMessageOverlay();
+                state.isMessageActive = false;
+
+                if (options.fromRune) {
+                    moonController.setHiddenImmediate();
+                    return;
+                }
+
+                await revealRune(index);
+                segmentStatus[index] = 'completed';
+                state.completedSegments.add(index);
+                moonController.setHiddenImmediate();
+
+                if (index === 3) {
+                    activateBlogMode();
+                    return;
+                }
+
+                updateUpcomingSegments();
+            }
+
+            function openRuneSegment(index) {
+                if (segmentStatus[index] !== 'completed' || state.isMessageActive) {
+                    return;
+                }
+                startSegmentDelivery(index, { fromRune: true });
+            }
+
+            function activateBlogMode(initial = false) {
+                if (state.blogMode && !initial) {
+                    return;
+                }
+                state.blogMode = true;
+                localStorage.setItem(BLOG_MODE_KEY, 'true');
+                document.body.classList.add('blog-mode');
+                deactivateBloodMoon();
+                queueManager.clear();
+                ringController.setAvailable(false);
+                moonController.setHiddenImmediate();
+                stopGhostQuotes();
+                closeMessageOverlay();
+                populateBlogContent();
+                segmentStatus.fill('completed');
+            }
+
+            function populateBlogContent() {
+                if (blogContent.dataset.loaded === 'true') {
+                    return;
+                }
+                blogContent.innerHTML = '';
+                SEGMENTS.forEach(segment => {
+                    const sections = segment.text.split('
+
+');
+                    sections.forEach((section, idx) => {
+                        if (idx === 0) {
+                            const h2 = document.createElement('h2');
+                            h2.textContent = section;
+                            blogContent.appendChild(h2);
+                        } else if (section.includes('Majko što')) {
+                            const chant = document.createElement('div');
+                            chant.className = 'chant';
+                            chant.textContent = section;
+                            blogContent.appendChild(chant);
+                        } else {
+                            const p = document.createElement('p');
+                            p.textContent = section;
+                            blogContent.appendChild(p);
+                        }
+                    });
+                });
+                blogContent.dataset.loaded = 'true';
+            }
+
+            async function tick() {
+                state.currentTime = await timeProvider.getCurrentTime();
+                updateClocks();
+
+                if (state.blogMode) {
+                    return;
+                }
+
+                updateBloodMoon();
+                buildInitialQueue();
+                updateUpcomingSegments();
+                moonController.update(state.currentTime);
+                queueManager.process();
+            }
+
+            function setupRunes() {
+                runeElements.forEach((rune, index) => {
+                    rune.addEventListener('click', () => openRuneSegment(index));
+                });
+            }
+
+            function setupRing() {
+                frontRing.addEventListener('click', () => {
+                    if (state.availableSegment !== null && !state.isMessageActive && !state.blogMode) {
+                        startSegmentDelivery(state.availableSegment);
                     }
                 });
-            });
-            
-            console.log('📄 Transformed to blog (permanent)');
-        }
-
-        // ==================== UTILITY ====================
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        // ==================== MAIN LOOP ====================
-        async function mainLoop() {
-            singaporeTime = await getSingaporeTime();
-            
-            updateClocks();
-            checkSegmentAvailability();
-            checkSpecialEvents();
-        }
-
-        // ==================== INITIALIZATION ====================
-        window.addEventListener('load', async () => {
-            createStars();
-            
-            singaporeTime = await getSingaporeTime();
-            updateClocks();
-            
-            // Check if blog mode was previously activated
-            if (isBlogMode) {
-                transformToBlog();
-                console.log('✨ Page initialized (Blog mode restored)');
-                return; // Skip main loop and ghost quotes in blog mode
             }
-            
-            // Immediately check for available segments on load
-            checkSegmentAvailability();
-            
-            setInterval(mainLoop, 1000);
-            
-            setInterval(showGhostQuote, 10000); // Every 10 seconds - more frequent
-            setTimeout(showGhostQuote, 3000);
-            
-            console.log('✨ Page initialized');
-            console.log('Current Singapore time:', singaporeTime.toLocaleString());
-        });
+
+            window.__ACT2_DEBUG__ = {
+                state,
+                segmentStatus,
+                queueManager,
+                moonController,
+                ringController,
+                timeProvider,
+                tick
+            };
+
+            window.addEventListener('load', async () => {
+                createStars();
+                setupRunes();
+                setupRing();
+
+                if (state.blogMode) {
+                    activateBlogMode(true);
+                }
+
+                state.currentTime = await timeProvider.getCurrentTime();
+                updateClocks();
+
+                if (!state.blogMode) {
+                    buildInitialQueue();
+                    updateUpcomingSegments();
+                    moonController.update(state.currentTime);
+                    startGhostQuotes();
+                }
+
+                if (!window.__ACT2_DISABLE_AUTOTICK__) {
+                    setInterval(() => {
+                        tick().catch(() => {});
+                    }, 1000);
+                }
+            });
+        })();
     </script>
+
 </body>
 </html>
