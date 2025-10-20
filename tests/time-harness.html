@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Act II Time Harness</title>
+    <style>
+        body {
+            background: #0d0d12;
+            color: #f5f5f5;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            max-width: 720px;
+        }
+
+        .controls {
+            margin: 1.5rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        button {
+            background: #1f1f2a;
+            color: #f5f5f5;
+            border: 1px solid #38384a;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2a2a3a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #log {
+            background: #08080d;
+            border: 1px solid #26263a;
+            border-radius: 6px;
+            padding: 1rem;
+            min-height: 220px;
+            max-height: 320px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            white-space: pre-wrap;
+        }
+
+        #stage {
+            border: 1px dashed #38384a;
+            border-radius: 6px;
+            min-height: 320px;
+            padding: 8px;
+            position: relative;
+            background: #050508;
+        }
+
+        iframe.app-frame {
+            width: 100%;
+            height: 600px;
+            border: 0;
+            background: #050508;
+        }
+    </style>
+</head>
+<body>
+    <h1>Act II Time Harness</h1>
+    <p>
+        This harness injects a deterministic Singapore time provider into <code>index.html</code> so the ritual can be stepped
+        through on demand. Each scenario below mirrors an edge case from the specification and records the observed behaviour.
+    </p>
+
+    <div class="controls">
+        <button data-scenario="lead">Scenario 1 — Long moon phase</button>
+        <button data-scenario="queue">Scenario 2 — Queued deliveries</button>
+        <button data-scenario="blood">Scenario 3 — Blood Moon window</button>
+        <button data-scenario="blog">Scenario 4 — Blog mode after Segment 4</button>
+        <button id="runAll">Run all scenarios</button>
+    </div>
+
+    <div id="log"></div>
+    <div id="stage"></div>
+
+    <script>
+        const ACT2_HARNESS_SCALE = 0.001;
+
+        class MockTimeProvider {
+            constructor(startIso) {
+                this.current = new Date(startIso).getTime();
+            }
+
+            async getCurrentTime() {
+                return new Date(this.current);
+            }
+
+            setTime(iso) {
+                if (typeof iso === 'number') {
+                    this.current = iso;
+                } else {
+                    this.current = new Date(iso).getTime();
+                }
+            }
+
+            advance(ms) {
+                this.current += ms;
+            }
+        }
+
+        const logEl = document.getElementById('log');
+        const stageEl = document.getElementById('stage');
+
+        function log(message) {
+            const line = document.createElement('div');
+            line.textContent = message;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            logEl.textContent = '';
+        }
+
+        function removeFrame() {
+            stageEl.innerHTML = '';
+        }
+
+        function waitFor(condition, timeout = 2000) {
+            return new Promise((resolve, reject) => {
+                const start = performance.now();
+                const step = () => {
+                    try {
+                        if (condition()) {
+                            resolve();
+                            return;
+                        }
+                    } catch (error) {
+                        reject(error);
+                        return;
+                    }
+                    if (performance.now() - start > timeout) {
+                        reject(new Error('Timed out waiting for condition'));
+                        return;
+                    }
+                    setTimeout(step, 5);
+                };
+                step();
+            });
+        }
+
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function loadRitual(startIso) {
+            removeFrame();
+            const iframe = document.createElement('iframe');
+            iframe.className = 'app-frame';
+            stageEl.appendChild(iframe);
+
+            const provider = new MockTimeProvider(startIso);
+
+            await new Promise(resolve => {
+                const onBlankLoad = () => {
+                    iframe.removeEventListener('load', onBlankLoad);
+                    const frameWin = iframe.contentWindow;
+                    frameWin.__ACT2_TIME_PROVIDER__ = provider;
+                    frameWin.__ACT2_DISABLE_AUTOTICK__ = true;
+                    frameWin.__ACT2_TIME_SCALE__ = ACT2_HARNESS_SCALE;
+                    frameWin.localStorage.removeItem('act2BlogMode');
+                    const onAppLoad = () => {
+                        iframe.removeEventListener('load', onAppLoad);
+                        resolve();
+                    };
+                    iframe.addEventListener('load', onAppLoad);
+                    frameWin.location.replace('../index.html');
+                };
+                iframe.addEventListener('load', onBlankLoad);
+                iframe.src = 'about:blank';
+            });
+
+            const win = iframe.contentWindow;
+            const debug = win.__ACT2_DEBUG__;
+            await debug.tick();
+            return { iframe, win, debug, provider };
+        }
+
+        function startManualLoop(debug) {
+            let active = true;
+            (async function run() {
+                while (active) {
+                    await debug.tick();
+                    await sleep(5);
+                }
+            })();
+            return () => {
+                active = false;
+            };
+        }
+
+        async function scenarioLead() {
+            const { iframe, win, debug, provider } = await loadRitual('2025-10-20T18:00:00+08:00');
+            const stop = startManualLoop(debug);
+
+            log('Scenario 1: monitoring long moon phase lead-in.');
+            log(`Initial moon mode: ${debug.moonController.mode}`);
+
+            provider.setTime('2025-10-20T18:04:00+08:00');
+            await debug.tick();
+            log(`Long phase engaged — mode=${debug.moonController.mode}, progress=${debug.moonController.progress.toFixed(2)}`);
+
+            provider.setTime('2025-10-20T18:34:00+08:00');
+            await debug.tick();
+            log(`30 minutes before delivery — progress=${debug.moonController.progress.toFixed(2)}`);
+
+            provider.setTime('2025-10-20T19:04:00+08:00');
+            await debug.tick();
+            const ringReady = win.document.getElementById('receiveRing').classList.contains('ready');
+            log(`Segment index ${debug.state.availableSegment} available, ring ready=${ringReady}`);
+
+            stop();
+            iframe.remove();
+        }
+
+        async function scenarioQueue() {
+            const { iframe, win, debug, provider } = await loadRitual('2025-10-20T20:30:00+08:00');
+            const stop = startManualLoop(debug);
+            const messageDisplay = win.document.getElementById('messageDisplay');
+            const timeline = [];
+            const startedAt = performance.now();
+
+            const record = label => {
+                const elapsed = performance.now() - startedAt;
+                const scaledSeconds = elapsed / 1000 / ACT2_HARNESS_SCALE;
+                timeline.push({ label, scaledSeconds });
+            };
+
+            log('Scenario 2: queued segment delivery cadence.');
+
+            await waitFor(() => debug.state.availableSegment === 0);
+            record('Segment 1 finale started');
+
+            await waitFor(() => messageDisplay.classList.contains('active'));
+            record('Segment 1 message opened');
+
+            const initialCloseable = messageDisplay.dataset.closeable;
+            messageDisplay.click();
+            await sleep(10);
+            const stillOpen = messageDisplay.classList.contains('active');
+            log(`Pre-reveal click ignored (closeable=${initialCloseable}, still open=${stillOpen})`);
+
+            await waitFor(() => messageDisplay.dataset.closeable === 'true');
+            record('Segment 1 reveal finished');
+
+            await waitFor(() => !messageDisplay.classList.contains('active'));
+            record('Segment 1 auto closed');
+
+            await waitFor(() => debug.state.availableSegment === 1);
+            record('Segment 2 finale started');
+
+            await waitFor(() => messageDisplay.classList.contains('active'));
+            record('Segment 2 message opened');
+
+            await waitFor(() => messageDisplay.dataset.closeable === 'true');
+            messageDisplay.click();
+            await waitFor(() => !messageDisplay.classList.contains('active'));
+            record('Segment 2 closed by click');
+
+            const zIndex = win.getComputedStyle(messageDisplay).zIndex;
+            log(`Overlay z-index reported as ${zIndex}`);
+
+            const rune = win.document.querySelector('.rune[data-segment="0"]');
+            rune.click();
+            await waitFor(() => messageDisplay.classList.contains('active'));
+            await waitFor(() => messageDisplay.dataset.closeable === 'true');
+            await waitFor(() => !messageDisplay.classList.contains('active'));
+            record('Rune reread auto closed');
+
+            timeline.forEach(entry => {
+                log(`${entry.label} at t+${entry.scaledSeconds.toFixed(2)}s (scenario seconds)`);
+            });
+
+            stop();
+            iframe.remove();
+        }
+
+        async function scenarioBlood() {
+            const { iframe, win, debug, provider } = await loadRitual('2025-10-21T06:05:00+08:00');
+            const stop = startManualLoop(debug);
+
+            log('Scenario 3: Blood Moon activation window.');
+
+            await waitFor(() => win.document.body.classList.contains('red-mode'));
+            log(`Blood Moon active (state=${debug.state.bloodMoonActive})`);
+
+            provider.setTime('2025-10-21T06:30:00+08:00');
+            await waitFor(() => !win.document.body.classList.contains('red-mode'));
+            log('Blood Moon cleared automatically at 06:30 SGT.');
+
+            stop();
+            iframe.remove();
+        }
+
+        async function scenarioBlog() {
+            const { iframe, win, debug, provider } = await loadRitual('2025-10-21T07:01:00+08:00');
+            const stop = startManualLoop(debug);
+
+            log('Scenario 4: queued catch-up and blog transformation.');
+
+            await waitFor(() => win.document.body.classList.contains('blog-mode'), 5000);
+            log('Blog mode activated within ritual session.');
+            const stored = win.localStorage.getItem('act2BlogMode');
+            log(`LocalStorage flag = ${stored}`);
+            const headingCount = win.document.querySelectorAll('#blogContent h2').length;
+            log(`Blog entries rendered: ${headingCount}`);
+
+            win.__ACT2_TIME_PROVIDER__ = provider;
+            win.__ACT2_DISABLE_AUTOTICK__ = true;
+            win.__ACT2_TIME_SCALE__ = ACT2_HARNESS_SCALE;
+
+            await new Promise(resolve => {
+                const onReload = () => {
+                    win.removeEventListener('load', onReload);
+                    resolve();
+                };
+                win.addEventListener('load', onReload);
+                win.location.reload();
+            });
+
+            await waitFor(() => win.document.body.classList.contains('blog-mode'));
+            log('Blog mode persisted after reload.');
+
+            stop();
+            iframe.remove();
+            window.localStorage.removeItem('act2BlogMode');
+        }
+
+        const scenarios = {
+            lead: scenarioLead,
+            queue: scenarioQueue,
+            blood: scenarioBlood,
+            blog: scenarioBlog
+        };
+
+        function setButtonsDisabled(disabled) {
+            document.querySelectorAll('button').forEach(btn => {
+                if (disabled) {
+                    btn.dataset.prevDisabled = btn.disabled ? 'true' : 'false';
+                    btn.disabled = true;
+                } else if (btn.dataset.prevDisabled !== 'true') {
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        async function runScenario(name) {
+            clearLog();
+            setButtonsDisabled(true);
+            try {
+                await scenarios[name]();
+                log('Scenario completed.');
+            } catch (error) {
+                console.error(error);
+                log(`Error: ${error.message}`);
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        document.querySelectorAll('button[data-scenario]').forEach(button => {
+            button.addEventListener('click', () => runScenario(button.dataset.scenario));
+        });
+
+        document.getElementById('runAll').addEventListener('click', async () => {
+            clearLog();
+            setButtonsDisabled(true);
+            try {
+                for (const key of Object.keys(scenarios)) {
+                    await scenarios[key]();
+                    log('——');
+                    await sleep(200);
+                }
+                log('All scenarios completed.');
+            } catch (error) {
+                console.error(error);
+                log(`Error: ${error.message}`);
+            } finally {
+                setButtonsDisabled(false);
+            }
+        });
+    </script>
+</body>
+</html>
