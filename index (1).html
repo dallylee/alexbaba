@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Summoning — Act II</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at center, #1a0f1a 0%, #0d0508 70%, #000000 100%);
+            font-family: 'Cinzel', serif;
+            color: #d4af37;
+            overflow-x: hidden;
+            transition: background 2s ease;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        /* Blog mode background */
+        body.blog-mode {
+            background: #f5f1e8;
+            color: #2a2a2a;
+        }
+
+        /* Hide stars in blog mode */
+        body.blog-mode .stars {
+            display: none;
+        }
+
+        /* Red mode during climax */
+        body.red-mode {
+            background: radial-gradient(ellipse at center, #2a0505 0%, #150000 70%, #000000 100%);
+            animation: screenShake 0.4s ease-in-out infinite;
+        }
+
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-3px, 2px); }
+            50% { transform: translate(3px, -2px); }
+            75% { transform: translate(-2px, -3px); }
+        }
+
+        @keyframes messageShake {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-5px, 3px); }
+            20% { transform: translate(5px, -3px); }
+            30% { transform: translate(-4px, -4px); }
+            40% { transform: translate(4px, 4px); }
+            50% { transform: translate(-3px, 2px); }
+            60% { transform: translate(3px, -2px); }
+            70% { transform: translate(-2px, 3px); }
+            80% { transform: translate(2px, -3px); }
+            90% { transform: translate(-1px, 1px); }
+        }
+
+        /* Stars */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: #d4af37;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+            box-shadow: 0 0 2px rgba(212, 175, 55, 0.8);
+        }
+
+        /* Depth layers - different brightness for depth */
+        .star.far {
+            opacity: 0.3;
+            animation-duration: 4s;
+        }
+
+        .star.mid {
+            opacity: 0.6;
+            animation-duration: 3s;
+        }
+
+        .star.near {
+            opacity: 0.9;
+            animation-duration: 2s;
+            box-shadow: 0 0 3px rgba(212, 175, 55, 1);
+        }
+
+        .star:nth-child(odd) {
+            animation-delay: 1s;
+        }
+
+        .star:nth-child(3n) {
+            animation-delay: 2s;
+        }
+
+        .star:nth-child(5n) {
+            animation-delay: 0.5s;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { 
+                opacity: 0.3;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.5);
+            }
+        }
+
+        /* Preserve star brightness during animations */
+        .star.far {
+            animation-name: twinkleFar;
+        }
+
+        .star.mid {
+            animation-name: twinkleMid;
+        }
+
+        .star.near {
+            animation-name: twinkleNear;
+        }
+
+        @keyframes twinkleFar {
+            0%, 100% { 
+                opacity: 0.2;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.5;
+                transform: scale(1.3);
+            }
+        }
+
+        @keyframes twinkleMid {
+            0%, 100% { 
+                opacity: 0.4;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8;
+                transform: scale(1.5);
+            }
+        }
+
+        @keyframes twinkleNear {
+            0%, 100% { 
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.8);
+            }
+        }
+
+        /* Red stars during climax */
+        body.red-mode .star {
+            background: #8b0000;
+            box-shadow: 0 0 4px rgba(139, 0, 0, 0.9);
+        }
+
+        body.red-mode .star.near {
+            background: #cd0000;
+            box-shadow: 0 0 6px rgba(205, 0, 0, 1);
+        }
+
+        /* Header info */
+        .header-info {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 100;
+            font-family: 'Inter', sans-serif;
+            color: #d4af37;
+            opacity: 0.8;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-width: 300px;
+        }
+
+        .header-info h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .header-info .subline {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .dual-clocks {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .clock {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .clock-label {
+            font-size: 0.65rem;
+            opacity: 0.6;
+            margin-bottom: 2px;
+        }
+
+        .clock-time {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Main ritual view */
+        .ritual-view {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        /* === EXACT CIRCLE CODE FROM PROVIDED HTML === */
+        .summoning-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            margin: 2rem 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 80px;
+        }
+
+        .background-universe {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -60%);
+            width: 600px;
+            height: 600px;
+            z-index: 1;
+            transition: width 30s ease-out, height 30s ease-out, 
+                        top 30s ease-out, transform 30s ease-out;
+        }
+
+        .distant-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #d4af37;
+            border-radius: 50%;
+            opacity: 0.2;
+            animation: distant-pulse 8s ease-in-out infinite;
+            box-shadow: 
+                0 0 100px rgba(212, 175, 55, 0.3),
+                inset 0 0 100px rgba(212, 175, 55, 0.1),
+                0 150px 200px rgba(212, 175, 55, 0.15);
+            transition: opacity 5s ease-out, 
+                        border-width 5s ease-out, 
+                        box-shadow 5s ease-out,
+                        filter 5s ease-out;
+        }
+
+        .distant-circle::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(ellipse 50% 80% at center 40%, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: glow-beam 4s ease-in-out infinite;
+        }
+
+        /* Intense pulse for approaching message */
+        .distant-circle.approaching {
+            animation: distant-pulse-intense 2s ease-in-out infinite;
+        }
+
+        @keyframes distant-pulse-intense {
+            0%, 100% { 
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.02);
+            }
+        }
+
+        .distant-energy {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            transition: width 30s ease-out, height 30s ease-out;
+        }
+
+        .distant-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+            height: 2px;
+            width: 100%;
+            top: 50%;
+            left: 0;
+            transform-origin: center;
+            opacity: 0;
+            animation: distant-line-pulse 6s ease-in-out infinite;
+        }
+
+        .distant-line:nth-child(1) { transform: rotate(0deg); animation-delay: 0s; }
+        .distant-line:nth-child(2) { transform: rotate(30deg); animation-delay: 0.5s; }
+        .distant-line:nth-child(3) { transform: rotate(60deg); animation-delay: 1s; }
+        .distant-line:nth-child(4) { transform: rotate(90deg); animation-delay: 1.5s; }
+        .distant-line:nth-child(5) { transform: rotate(120deg); animation-delay: 2s; }
+        .distant-line:nth-child(6) { transform: rotate(150deg); animation-delay: 2.5s; }
+
+        .front-ring {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            z-index: 10;
+            cursor: pointer;
+        }
+
+        .receive-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #d4af37;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.1), transparent 70%);
+            box-shadow: 
+                0 0 30px rgba(212, 175, 55, 0.8),
+                inset 0 0 20px rgba(212, 175, 55, 0.2);
+            animation: receive-glow 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .receive-ring:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 0 50px rgba(212, 175, 55, 1),
+                inset 0 0 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .receive-text {
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            text-transform: uppercase;
+        }
+
+        .receive-ring.ready .receive-text {
+            opacity: 1;
+        }
+
+        /* Intensity variations */
+        .distant-circle.intense {
+            opacity: 0.5;
+            box-shadow: 
+                0 0 150px rgba(212, 175, 55, 0.6),
+                inset 0 0 120px rgba(212, 175, 55, 0.2),
+                0 150px 250px rgba(212, 175, 55, 0.3);
+        }
+
+        .receive-ring.intense {
+            animation: intense-receive-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes intense-receive-glow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 50px rgba(212, 175, 55, 1),
+                    inset 0 0 30px rgba(212, 175, 55, 0.3);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 80px rgba(212, 175, 55, 1.2),
+                    inset 0 0 40px rgba(212, 175, 55, 0.4);
+            }
+        }
+
+        @keyframes distant-pulse {
+            0%, 100% { 
+                opacity: 0.1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.3;
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes distant-line-pulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes receive-glow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 30px rgba(212, 175, 55, 0.8),
+                    inset 0 0 20px rgba(212, 175, 55, 0.2);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 50px rgba(212, 175, 55, 1),
+                    inset 0 0 30px rgba(212, 175, 55, 0.3);
+            }
+        }
+
+        @keyframes glow-beam {
+            0%, 100% { 
+                opacity: 0.3;
+                transform: translate(-50%, -50%) scaleY(1);
+            }
+            50% { 
+                opacity: 0.6;
+                transform: translate(-50%, -50%) scaleY(1.2);
+            }
+        }
+
+        /* Red mode for circles */
+        body.red-mode .distant-circle,
+        body.red-mode .receive-ring {
+            border-color: #8b0000;
+            box-shadow: 
+                0 0 100px rgba(139, 0, 0, 0.8),
+                inset 0 0 60px rgba(139, 0, 0, 0.3);
+        }
+
+        body.red-mode .distant-line {
+            background: linear-gradient(90deg, transparent, rgba(139, 0, 0, 0.5), transparent);
+        }
+
+        /* Shooting rings */
+        .shooting-ring {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border: 3px solid #8b0000;
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(139, 0, 0, 0.8);
+            animation: shootDown 2.5s ease-in infinite;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        @keyframes shootDown {
+            0% { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% { 
+                opacity: 0;
+                transform: translateY(600px) scale(0.3);
+            }
+        }
+
+        /* === END EXACT CIRCLE CODE === */
+
+        /* Message display */
+        .message-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 750px;
+            max-height: 75vh;
+            background: rgba(0, 0, 0, 0.97);
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            padding: 50px;
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            overflow-y: auto;
+            box-shadow: 0 0 120px rgba(212, 175, 55, 0.7);
+            transition: opacity 0.5s ease;
+        }
+
+        .message-display.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .message-text {
+            font-family: 'Crimson Text', serif;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            color: #d4af37;
+            user-select: none;
+        }
+
+        /* Runes in sky */
+        .rune-constellation {
+            position: fixed;
+            top: 22%;
+            left: 12%;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 45px;
+        }
+
+        .rune {
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.4s ease;
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0));
+            user-select: none;
+        }
+
+        .rune.visible {
+            opacity: 0.35;
+            filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.3));
+        }
+
+        .rune.visible:hover {
+            opacity: 1;
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 25px rgba(212, 175, 55, 0.9));
+        }
+
+        .rune.flash {
+            animation: flashRune 1.2s ease-out;
+        }
+
+        @keyframes flashRune {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.5);
+                filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0)); 
+            }
+            40% { 
+                opacity: 1; 
+                transform: scale(1.3);
+                filter: drop-shadow(0 0 50px rgba(255, 255, 255, 1)); 
+            }
+            100% { 
+                opacity: 0.35; 
+                transform: scale(1);
+                filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.3)); 
+            }
+        }
+
+        /* Dramatic rune reveal - 3x expansion with triple pulse */
+        .rune.dramatic-reveal {
+            animation: dramaticRuneReveal 3s ease-out forwards;
+        }
+
+        @keyframes dramaticRuneReveal {
+            0% { 
+                transform: scale(1);
+                opacity: 0.35;
+                filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.3));
+            }
+            10% { 
+                transform: scale(3);
+                opacity: 1;
+                filter: drop-shadow(0 0 80px rgba(255, 255, 255, 1));
+            }
+            20% {
+                transform: scale(2.8);
+                filter: drop-shadow(0 0 60px rgba(212, 175, 55, 0.8));
+            }
+            30% {
+                transform: scale(3);
+                filter: drop-shadow(0 0 80px rgba(255, 255, 255, 1));
+            }
+            40% {
+                transform: scale(2.8);
+                filter: drop-shadow(0 0 60px rgba(212, 175, 55, 0.8));
+            }
+            50% {
+                transform: scale(3);
+                filter: drop-shadow(0 0 80px rgba(255, 255, 255, 1));
+            }
+            60% {
+                transform: scale(2.8);
+                filter: drop-shadow(0 0 60px rgba(212, 175, 55, 0.8));
+            }
+            100% { 
+                transform: scale(1);
+                opacity: 0.8;
+                filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.9));
+            }
+        }
+
+        /* Permanent intense glow after reveal */
+        .rune.permanent-glow {
+            opacity: 0.8;
+            filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.9));
+        }
+
+        .rune.permanent-glow:hover {
+            opacity: 1;
+            transform: scale(1.3);
+            filter: drop-shadow(0 0 40px rgba(212, 175, 55, 1));
+        }
+
+        /* Ghost quotes */
+        .ghost-quote {
+            position: fixed;
+            font-family: 'Crimson Text', serif;
+            font-size: clamp(1.3rem, 3vw, 2rem);
+            font-style: italic;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+            color: #d4af37;
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+            max-width: 60%;
+            line-height: 1.5;
+            user-select: none;
+            font-weight: 400;
+        }
+
+        /* Blog post mode */
+        .blog-post {
+            display: none;
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 70px 50px;
+            font-family: 'Crimson Text', serif;
+            color: #2a2a2a;
+            line-height: 1.9;
+        }
+
+        body.blog-mode .blog-post {
+            display: block;
+        }
+
+        body.blog-mode .ritual-view,
+        body.blog-mode .header-info,
+        body.blog-mode .rune-constellation,
+        body.blog-mode .ghost-quote,
+        body.blog-mode .stars {
+            display: none !important;
+        }
+
+        .blog-post h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            color: #1a1a1a;
+        }
+
+        .blog-post .meta {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            color: #666;
+            margin-bottom: 50px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #d4af37;
+        }
+
+        .blog-post h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.9rem;
+            margin-top: 45px;
+            margin-bottom: 25px;
+            color: #1a1a1a;
+        }
+
+        .blog-post p {
+            margin-bottom: 22px;
+            font-size: 1.15rem;
+        }
+
+        .blog-post .chant {
+            text-align: center;
+            font-style: italic;
+            font-size: 1.35rem;
+            margin: 45px 0;
+            padding: 25px;
+            background: rgba(212, 175, 55, 0.08);
+            border-left: 5px solid #d4af37;
+            border-radius: 3px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-info {
+                font-size: 0.75rem;
+                max-width: 250px;
+                top: 15px;
+                left: 15px;
+            }
+
+            .background-universe {
+                width: 400px;
+                height: 400px;
+            }
+
+            .front-ring {
+                width: 100px;
+                height: 100px;
+            }
+
+            .rune-constellation {
+                left: 8%;
+                gap: 35px;
+            }
+
+            .rune {
+                width: 50px;
+                height: 50px;
+                font-size: 1.8rem;
+            }
+
+            .message-display {
+                width: 92%;
+                padding: 35px 25px;
+            }
+
+            .blog-post {
+                padding: 50px 25px;
+            }
+
+            .blog-post h1 {
+                font-size: 2.2rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 175, 55, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <!-- Header Info -->
+    <div class="header-info">
+        <h2>The Summoning — Act II</h2>
+        <div class="subline">Live status from Aleksandra, Council liaison</div>
+        <div>21 October, New Moon</div>
+        <div class="dual-clocks">
+            <div class="clock">
+                <div class="clock-label">Belgrade</div>
+                <div class="clock-time" id="belgradeClock">00:00</div>
+            </div>
+            <div class="clock">
+                <div class="clock-label">Singapore</div>
+                <div class="clock-time" id="singaporeClock">06:00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ritual View -->
+    <div class="ritual-view">
+        <div class="summoning-area">
+            <div class="background-universe">
+                <div class="distant-circle" id="distantCircle"></div>
+                <div class="distant-energy">
+                    <div class="distant-line"></div>
+                    <div class="distant-line"></div>
+                    <div class="distant-line"></div>
+                    <div class="distant-line"></div>
+                    <div class="distant-line"></div>
+                    <div class="distant-line"></div>
+                </div>
+            </div>
+            
+            <div class="front-ring" id="frontRing">
+                <div class="receive-ring" id="receiveRing">
+                    <div class="receive-text">Receive</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shooting rings container -->
+    <div id="shootingContainer"></div>
+
+    <!-- Rune constellation -->
+    <div class="rune-constellation" id="runeConstellation">
+        <div class="rune" data-segment="0">ᚱ</div>
+        <div class="rune" data-segment="1">ᛏ</div>
+        <div class="rune" data-segment="2">ᛗ</div>
+        <div class="rune" data-segment="3">ᛉ</div>
+    </div>
+
+    <!-- Message display -->
+    <div class="message-display" id="messageDisplay">
+        <div class="message-text" id="messageText"></div>
+    </div>
+
+    <!-- Blog post -->
+    <div class="blog-post" id="blogPost">
+        <h1>The Summoning — Act II</h1>
+        <div class="meta">
+            <strong>The Three Prepare</strong><br>
+            Live documentation by Aleksandra, Council liaison<br>
+            21 October, New Moon
+        </div>
+        <div id="blogContent"></div>
+    </div>
+
+    <script>
+        // ==================== DATA ====================
+        const SEGMENTS = [
+            {
+                time: '2025-10-20T19:04:00+08:00',
+                text: `Our preparation: The Gathering of the Three
+
+For three nights we keep silence. No salt, no meat, no touching iron. We sleep with birch ash on our eyelids, water in bowls under our beds. Dreams twist, but none of us cry out. They pass like animals through high grass, seen only by the sway they leave.
+
+At dawn on the twentieth, as you're reading this, we will cross the creek slip beneath Crni Most, the Black Bridge. We do not cross it, we pass under it, in the creek itself. The water is mountain-cold; it bites the skin and takes what fear remains. Our arrival stays unannounced.
+
+On the far bank stands the Tree of Ancestors, a crooked elder that drinks from both soil and stream. Each of us takes one leaf, not torn but chosen where it is ready to fall; pressed to the pulse at the wrist, then folded away to mark the way back.
+
+We part at the bridge, each to a direction, each to fetch what does not belong to the forest's law. 
+North for the key that opens and bites shut. 
+East for the bitterness that draws a border and drains will. 
+West for the faint green light that remembers the dead.`
+            },
+            {
+                time: '2025-10-20T20:09:00+08:00',
+                text: `The three offerings, outside her Realm
+
+• Baba walks north, to the storm-felled grove, and pulled Sedmoključ. A raskovnik root prepared against the grain. Pickled in brine from a Dead Spring and bound with seven red threads, each knot tied on a waning moon. It forces the spirit hinge to open, then bites shut beneath the foot that trespasses. It tastes of vows and salt; it is not born clean in Muma's world.
+
+• Alexia turned east, into the thornfield of burnt crow feathers. There, she found Gorkovid. Tansy raised in a scorched field, watered with brine and ash, never touched by bees. Its bitterness seals a border and drains will at the moment of the bind.
+
+• Gruba heads west, toward the caves where moss grows long as hair. In the damp dark she picks Žarnoć. A bitter fungus that glows faint green. This strain sprang from a coffin plank jammed in limestone after a flood; it fed on funeral wax and oath-ink. It shines with memory, not with growth. It draws curiosity and softens wrath.
+
+We return before dusk; our soles bleed; we say nothing. We are no longer women. We are vessels.`
+            },
+            {
+                time: '2025-10-20T21:06:00+08:00',
+                text: `The procession and the altar
+
+We walk to Zubi Šume, the Forest's Teeth. The stones rise pale like jaw and molar; sound thins as if swallowed. We find our spot. In the centre we build what carries the sound of worlds:
+
+Gruba lays a charred trunk; Alexia prises a thin slab from a standing stone and slides it on top; I set a clay bowl and pour moon water prepared days ago. Altar in the middle. We stand at our points. We speak the line that opens the conduit: "Water, womb of life, mirror of the night, lend me your voice, your power, your light." Across the world, you feel the tingle in your hands. The channel is open.
+
+The lure
+
+The chant begins. It is not pretty; it is plain. A mothers' song passed mouth to mouth, older than paper. Insects still their wings. A branch creaks, then does not. The bowl's skin tightens until it reflects the stones like a dark eye.
+
+We chant:
+
+Majko što u lišću spavaš,
+Što ljubav zubima cijepaš,
+Došla si kad zadnje srce pukne.
+Pojavi se. Uništi. Ugrizi.`
+            },
+            {
+                time: '2025-10-21T07:00:00+08:00',
+                text: `Presence
+
+The woods goes silent. Breath like wet bark; moss-sweet rot; a weight behind the eyes. Where she stands, bark takes the idea of a woman; hair hangs like wet roots; eyes keep the colour of unlit resin. She is not afraid of us. She is curious, then annoyed, as if a fly has landed on the skin of the forest.
+
+Gruba buckles for a heartbeat. Baba calms her with two words: Steady, child. Alexia tastes blood; she has bitten her lip without knowing. Muma's attention moves like a shadow across stone.
+
+For the space of a breath, the past rises in Baba's throat, the year Josipa was lost; her jaw trembles; she sets it, lifts her chin, and speaks:
+
+"Šumska Majko! We come to restore balance, not to beg a favour. By the Law of the Endless that binds all worlds, a Shadow of the First World was given passage among the living and devours where it should not. Mother of the Forest, bear witness to this violation. Strike as the righteous arm of justice; reclaim what was taken; let the debt be severed."
+
+A hiss passes through the glade from everywhere at once, a sound that lives in the bones. Muma does not take orders from a witch, and she does not forgive being called.
+
+She pauses, as if weighing us, testing for arrogance or plea. The stones appear closer than they are; the air thickens. A beetle scratches once under bark, then is silent. Cold gathers at the wrists, as if bracelets of water are tightened.
+
+Before she can strike, Alexia calls out: "We bring gifts."
+
+Muma tilts. The air tightens.
+
+Gruba reaches into her damp coat and lifts Žarnoć. Green breath wakes along the gills. Muma steps closer, gaze fixed on the glow, she knows every grass, every crop, yet this she has never seen, she comes closer still, and crosses the ring drawn around the altar. In that instant Baba drives Sedmoključ into the soil at her mark. The hinge bites shut beneath the trespassing foot.
+
+Alexia wraps Gorkovid in a scrap of linen and crushes it, bitterness staining the cloth; she presses it to the altar stone. Bitterness floods low across the ground and licks at Muma's knees. She shudders, slows. Then with a sudden lash she surges toward Alexia. Baba stamps the earth; the hinge grips tighter. Gruba blows lightly across Žarnoć. Fine glowing dust rises and hangs; Muma's eyes follow it like a moth tracking a cold flame. Mesmerised. She knows she is being tricked.
+
+Each time she turns her anger on one, the other two pull harder. Gruba keeps the fungus high though her arm shakes; Alexia's stained cloth smokes at the edges; the hinge holds fast under Baba's heel. Voice, ground, air. She cannot break all three at once.
+
+At last, her rage thins. Baba knows they cannot hold her much longer. There is no watch here to tell time. Only the moon and the bowl. Baba's thoughts go to Jojo. The water in the bowl turns black. From its depth a faint, distant voice begins to form, broken at first, then clearer with every breath.
+
+The fourth circle
+
+06:15 in Singapore. Your heart climbs. You feel the conduit open like a thread pulling through the chest. Quick breath, focus, a brief light-headedness, then steady. You begin. Normal voice, steady pace, five minutes only. At first the conduit carries fragments, like words heard through rain.
+
+"Yoong… shadow… known… release… banish… strike… return…"
+
+With each breath the bowl strengthens the sound. The fragments join. Your chant stands whole:
+
+"Yoong Pui Shen, shadow you invited, be named and known; release, banish, strike; return what is not yours."
+
+Your words travel the conduit; the bowl drinks the sound and gives it back like a bell under water. We join in, we echo only the verdict: Release, banish, strike, return what is not yours.
+
+Judgment
+
+Her rage stills; she listens. The Three hold her with the last of their strength. The messenger's voice bears an ancient seal, the karmic right to settle the debt, a First Law even Mother of the Forest must obeys. Her head tilts, so as not to miss a word. Your voice is crystal clear:
+
+"Yoong Pui Shen, shadow you invited, be named and known; release, banish, strike; return what is not yours."
+
+She now knows the name. Her head tilts farther than a neck should tilt. She knows every creature on this Earth, living or dead. She is searching for her.. eyes black and void, gaze emptied, quick, unnatural ticks.. then she looks past us, past the trees, to where the named one stands in the world, and her eyes take fire. She found her.
+
+The roots crack; the air compresses. The Three release. Thunder cracks; the ground shudders; Muma is gone.
+
+She will strike the Strigoi with a single blow.
+
+We look at each other, no words. Shaken, but in one piece. The price shows on skin: crescents under Baba's nails darken; weal rise on Alexia's palm; a thin ring of green rims Gruba's pupils.
+
+Closings
+
+We erase prints. We unmake the altar. We take the bowl. It is not enough. Before first light the Council will veil the glade with juniper ash and grave-fern, and cast the enchantment of forgetting over the site that will hold a hundred years.
+
+A thread I leave unpulled
+
+At the centre where she stood, I empty the last of the moon water and press a single wooden bead into the earth. I do not explain this to you now. We move on.
+
+Your seal
+
+06:20. Stop the chant. Hands over your heart. One breath in, one longer breath out. In your mind: "The door is closed." Then speak once, clearly:
+
+"Frederico Gil Sander, my debt is paid; bond between us is closed; I release you, I release myself; go in peace."
+
+Remain until 06:30. Step out. Lie down. The emptiness will feel sharp at first, then clean.
+
+Proof of silence
+
+The forest exhales. Your room settles. For the first time in years, you are still without a shadow beside you.`
+            }
+        ];
+
+        const GHOST_QUOTES = [
+            "Water, womb of life, mirror of the night",
+            "We are no longer women. We are vessels.",
+            "Dreams twist, but none of us cry out.",
+            "The hinge bites shut beneath the trespassing foot.",
+            "She will strike the Strigoi with a single blow.",
+            "For the first time in years, you are still without a shadow beside you.",
+            "North for the key that opens and bites shut.",
+            "It shines with memory, not with growth.",
+            "The forest exhales.",
+            "Thunder cracks; the ground shudders; Muma is gone."
+        ];
+
+        // ==================== STATE ====================
+        let singaporeTime = new Date();
+        let availableSegment = -1;
+        let completedSegments = [];
+        let isDisplayingMessage = false;
+        let isRedMode = false;
+        let isBlogMode = false;
+        let shootingInterval = null;
+        let lastCircleProgress = -1; // Track last animation progress
+        let pastSegmentsDelivered = false;
+        let deliveryQueue = [];
+
+        // ==================== LOGGING SYSTEM ====================
+        const EventLogger = {
+            logs: [],
+            sessionId: null,
+            
+            init() {
+                // Generate unique session ID
+                this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Load existing logs from localStorage
+                const stored = localStorage.getItem('summoningLogs');
+                if (stored) {
+                    try {
+                        this.logs = JSON.parse(stored);
+                    } catch (e) {
+                        this.logs = [];
+                    }
+                }
+                
+                // Log page load
+                this.log('PAGE_LOAD', {
+                    userAgent: navigator.userAgent,
+                    screenSize: `${window.innerWidth}x${window.innerHeight}`,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                });
+                
+                // Save logs periodically
+                setInterval(() => this.save(), 30000); // Every 30 seconds
+                
+                // Save on page unload
+                window.addEventListener('beforeunload', () => this.save());
+                
+                console.log('📊 Logging initialized. Session ID:', this.sessionId);
+            },
+            
+            log(eventType, data = {}) {
+                const entry = {
+                    sessionId: this.sessionId,
+                    timestamp: new Date().toISOString(),
+                    singaporeTime: singaporeTime.toISOString(),
+                    eventType: eventType,
+                    data: data
+                };
+                
+                this.logs.push(entry);
+                console.log('📝 LOG:', eventType, data);
+                
+                // Auto-save after important events
+                if (['SEGMENT_CLICKED', 'RED_MODE_START', 'BLOG_TRANSFORM'].includes(eventType)) {
+                    this.save();
+                }
+            },
+            
+            save() {
+                try {
+                    localStorage.setItem('summoningLogs', JSON.stringify(this.logs));
+                    console.log('💾 Logs saved. Total entries:', this.logs.length);
+                } catch (e) {
+                    console.error('Failed to save logs:', e);
+                }
+            },
+            
+            download() {
+                const dataStr = JSON.stringify(this.logs, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `summoning_logs_${this.sessionId}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                console.log('📥 Logs downloaded');
+            },
+            
+            clear() {
+                this.logs = [];
+                localStorage.removeItem('summoningLogs');
+                console.log('🗑️ Logs cleared');
+            },
+            
+            getReport() {
+                const report = {
+                    totalSessions: new Set(this.logs.map(l => l.sessionId)).size,
+                    totalEvents: this.logs.length,
+                    currentSession: this.sessionId,
+                    events: {}
+                };
+                
+                this.logs.forEach(log => {
+                    if (!report.events[log.eventType]) {
+                        report.events[log.eventType] = 0;
+                    }
+                    report.events[log.eventType]++;
+                });
+                
+                return report;
+            }
+        };
+
+        // Initialize logging
+        EventLogger.init();
+
+        // Make logger globally accessible for debugging
+        window.EventLogger = EventLogger;
+
+        // ==================== INITIALIZATION ====================
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('test') === 'true') {
+            activateTestMode();
+        }
+
+        // Check if blog mode was previously activated
+        if (localStorage.getItem('isBlogMode') === 'true') {
+            isBlogMode = true;
+        }
+
+        // ==================== TIME MANAGEMENT ====================
+        async function getSingaporeTime() {
+            try {
+                const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Singapore', {
+                    cache: 'no-cache'
+                });
+                const data = await response.json();
+                return new Date(data.datetime);
+            } catch (error) {
+                return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+            }
+        }
+
+        function updateClocks() {
+            const belgradeTime = new Date(singaporeTime.toLocaleString('en-US', { timeZone: 'Europe/Belgrade' }));
+
+            document.getElementById('singaporeClock').textContent = 
+                singaporeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('belgradeClock').textContent = 
+                belgradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        // ==================== STARS ====================
+        function createStars() {
+            const container = document.getElementById('stars');
+            
+            // Create stars with depth layers
+            for (let i = 0; i < 150; i++) { // Increased from 120 to 150
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // Position
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                
+                // Assign depth layer (far: 50%, mid: 35%, near: 15%)
+                const depthRoll = Math.random();
+                if (depthRoll < 0.5) {
+                    star.classList.add('far');
+                    // Far stars: smaller
+                    const size = Math.random() * 1.5 + 0.3;
+                    star.style.width = size + 'px';
+                    star.style.height = size + 'px';
+                } else if (depthRoll < 0.85) {
+                    star.classList.add('mid');
+                    // Mid stars: medium
+                    const size = Math.random() * 2 + 0.8;
+                    star.style.width = size + 'px';
+                    star.style.height = size + 'px';
+                } else {
+                    star.classList.add('near');
+                    // Near stars: larger, brighter
+                    const size = Math.random() * 2.5 + 1.5;
+                    star.style.width = size + 'px';
+                    star.style.height = size + 'px';
+                }
+                
+                // Randomize animation timing for natural feel
+                star.style.animationDelay = Math.random() * 4 + 's';
+                
+                container.appendChild(star);
+            }
+        }
+
+        // ==================== GHOST QUOTES ====================
+        function showGhostQuote() {
+            if (isBlogMode) return;
+            
+            const quote = GHOST_QUOTES[Math.floor(Math.random() * GHOST_QUOTES.length)];
+            const element = document.createElement('div');
+            element.className = 'ghost-quote';
+            element.textContent = quote;
+            
+            element.style.top = Math.random() * 60 + 20 + '%';
+            element.style.left = Math.random() * 50 + 25 + '%';
+            
+            document.body.appendChild(element);
+
+            setTimeout(() => {
+                element.style.transition = 'opacity 4s ease-in';
+                element.style.opacity = Math.random() * 0.12 + 0.05;
+            }, 100);
+
+            setTimeout(() => {
+                element.style.transition = 'opacity 4s ease-out';
+                element.style.opacity = 0;
+                setTimeout(() => element.remove(), 4000);
+            }, 12000);
+        }
+
+        // ==================== SEGMENT AVAILABILITY ====================
+        function checkSegmentAvailability() {
+            if (isBlogMode) return;
+
+            // On first load, check all segments and queue past ones
+            if (!pastSegmentsDelivered) {
+                let pastSegments = [];
+                
+                for (let i = 0; i < SEGMENTS.length; i++) {
+                    if (completedSegments.includes(i)) continue;
+                    
+                    // Special handling for segment 4 (index 3)
+                    if (i === 3) {
+                        // Segment 4 only available on Oct 21 at 7:00
+                        const oct21At7 = new Date('2025-10-21T07:00:00+08:00');
+                        if (singaporeTime >= oct21At7) {
+                            pastSegments.push(i);
+                        }
+                        continue;
+                    }
+                    
+                    const segmentTime = new Date(SEGMENTS[i].time);
+                    if (singaporeTime >= segmentTime) {
+                        pastSegments.push(i);
+                    }
+                }
+                
+                if (pastSegments.length > 0) {
+                    console.log(`📦 Found ${pastSegments.length} past segments to deliver`);
+                    deliveryQueue = pastSegments;
+                    deliverNextInQueue();
+                }
+                
+                pastSegmentsDelivered = true;
+                return;
+            }
+
+            // Normal check for current time matches
+            for (let i = 0; i < SEGMENTS.length; i++) {
+                if (completedSegments.includes(i)) continue;
+                if (availableSegment === i) continue;
+                
+                // Special handling for segment 4
+                if (i === 3) {
+                    const oct21At7 = new Date('2025-10-21T07:00:00+08:00');
+                    if (singaporeTime >= oct21At7 && singaporeTime < new Date(oct21At7.getTime() + 60000)) {
+                        console.log(`✅ Segment 4 now available!`);
+                        makeSegmentAvailable(i);
+                        break;
+                    }
+                    continue;
+                }
+                
+                const segmentTime = new Date(SEGMENTS[i].time);
+                
+                // Check if we're within 1 minute of segment time
+                if (singaporeTime >= segmentTime && singaporeTime < new Date(segmentTime.getTime() + 60000)) {
+                    console.log(`✅ Segment ${i + 1} now available!`);
+                    makeSegmentAvailable(i);
+                    break;
+                }
+            }
+        }
+
+        // Deliver queued segments one by one with 1 minute delay
+        async function deliverNextInQueue() {
+            if (deliveryQueue.length === 0) return;
+            if (isDisplayingMessage) {
+                // Wait and retry
+                setTimeout(deliverNextInQueue, 5000);
+                return;
+            }
+            
+            const nextIndex = deliveryQueue.shift();
+            console.log(`📬 Delivering queued segment ${nextIndex + 1}`);
+            makeSegmentAvailable(nextIndex);
+            
+            // If more in queue, schedule next delivery in 1 minute
+            if (deliveryQueue.length > 0) {
+                setTimeout(deliverNextInQueue, 60000);
+            }
+        }
+
+        function updateDistantCircleJourney() {
+            if (isBlogMode) {
+                resetDistantCircle();
+                return;
+            }
+
+            // If segment is available, show it as fully arrived
+            if (availableSegment !== -1) {
+                animateDistantCircle(1.0); // Full glow
+                return;
+            }
+
+            // No animation - circle stays hidden until segment is available
+            resetDistantCircle();
+        }
+        }
+
+        function resetDistantCircle() {
+            const universe = document.querySelector('.background-universe');
+            const circle = document.getElementById('distantCircle');
+            const energy = document.querySelector('.distant-energy');
+            
+            universe.style.width = '600px';
+            universe.style.height = '600px';
+            universe.style.top = '50%';
+            universe.style.transform = 'translate(-50%, -60%)';
+            
+            energy.style.width = '400px';
+            energy.style.height = '400px';
+            
+            circle.style.opacity = '0.2';
+            circle.style.borderWidth = '3px';
+            circle.style.boxShadow = `
+                0 0 100px rgba(212, 175, 55, 0.3),
+                inset 0 0 100px rgba(212, 175, 55, 0.1),
+                0 150px 200px rgba(212, 175, 55, 0.15)
+            `;
+            circle.classList.remove('approaching');
+            
+            lastCircleProgress = -1; // Reset progress tracking
+        }
+
+        function animateDistantCircle(progress) {
+            // Only update if progress changed significantly (reduce unnecessary updates)
+            if (Math.abs(progress - lastCircleProgress) < 0.005) {
+                return; // Skip if less than 0.5% change
+            }
+            lastCircleProgress = progress;
+            
+            const universe = document.querySelector('.background-universe');
+            const circle = document.getElementById('distantCircle');
+            const energy = document.querySelector('.distant-energy');
+            
+            // Size: starts at 600px, grows to fill most of screen
+            const startSize = 600;
+            const maxSize = Math.min(window.innerWidth, window.innerHeight) * 1.5;
+            const currentSize = startSize + (maxSize - startSize) * easeInOut(progress);
+            
+            // Scale factor for proportional growth
+            const scaleFactor = currentSize / startSize;
+            
+            // Energy lines scale proportionally
+            const energyStartSize = 400;
+            const energyCurrentSize = energyStartSize * scaleFactor;
+            
+            // Position: The circle should stay anchored so it doesn't go below the front ring
+            const minTop = 65;
+            const startTop = 50;
+            const endTop = Math.max(50, minTop);
+            const currentTop = startTop + (endTop - startTop) * easeInOut(progress);
+            
+            // Adjust transform to keep circle properly centered as it grows
+            const translateY = -50 + (10 * progress);
+            
+            // Opacity: grows from 0.2 to 1
+            const opacity = 0.2 + (0.8 * progress);
+            
+            // Border: grows from 3px to 12px (increased from 8px)
+            const borderSize = 3 + (9 * progress);
+            
+            // Enhanced glow intensity - much stronger
+            const baseGlowSize = 150 + (300 * progress); // Increased from 100-250
+            const baseGlowOpacity = 0.5 + (0.5 * progress); // Increased from 0.3-1.0
+            
+            // Check if within 10 minutes (progress > 0.833)
+            const within10Min = progress > 0.833;
+            
+            // Color mixing for final approach - purple and red hues
+            let boxShadowStyle;
+            if (within10Min) {
+                // Calculate intensity of purple/red (increases as we get closer)
+                const finalApproachProgress = (progress - 0.833) / 0.167; // 0 to 1 in last 10 min
+                
+                // Mix gold with purple and red
+                const purpleIntensity = 0.3 * finalApproachProgress;
+                const redIntensity = 0.4 * finalApproachProgress;
+                
+                boxShadowStyle = `
+                    0 0 ${baseGlowSize}px rgba(212, 175, 55, ${baseGlowOpacity}),
+                    0 0 ${baseGlowSize * 0.8}px rgba(138, 43, 226, ${purpleIntensity}),
+                    0 0 ${baseGlowSize * 0.6}px rgba(220, 20, 60, ${redIntensity}),
+                    inset 0 0 ${baseGlowSize * 0.6}px rgba(212, 175, 55, ${baseGlowOpacity * 0.6}),
+                    inset 0 0 ${baseGlowSize * 0.4}px rgba(138, 43, 226, ${purpleIntensity * 0.5}),
+                    0 ${baseGlowSize * 2}px ${baseGlowSize * 3}px rgba(212, 175, 55, ${baseGlowOpacity * 0.4}),
+                    0 ${baseGlowSize * 1.5}px ${baseGlowSize * 2}px rgba(138, 43, 226, ${purpleIntensity * 0.3}),
+                    0 ${baseGlowSize}px ${baseGlowSize * 1.5}px rgba(220, 20, 60, ${redIntensity * 0.3})
+                `;
+            } else {
+                // Normal gold glow - but more intense
+                boxShadowStyle = `
+                    0 0 ${baseGlowSize}px rgba(212, 175, 55, ${baseGlowOpacity}),
+                    inset 0 0 ${baseGlowSize * 0.6}px rgba(212, 175, 55, ${baseGlowOpacity * 0.6}),
+                    0 ${baseGlowSize * 2}px ${baseGlowSize * 3}px rgba(212, 175, 55, ${baseGlowOpacity * 0.4})
+                `;
+            }
+            
+            // Apply styles to universe/circle
+            universe.style.width = currentSize + 'px';
+            universe.style.height = currentSize + 'px';
+            universe.style.top = currentTop + '%';
+            universe.style.transform = `translate(-50%, ${translateY}%)`;
+            
+            circle.style.opacity = opacity;
+            circle.style.borderWidth = borderSize + 'px';
+            circle.style.boxShadow = boxShadowStyle;
+            
+            // Apply styles to energy lines
+            energy.style.width = energyCurrentSize + 'px';
+            energy.style.height = energyCurrentSize + 'px';
+            
+            // Add intense pulse when very close (last 15 minutes = progress > 0.75)
+            if (progress > 0.75) {
+                circle.classList.add('approaching');
+            } else {
+                circle.classList.remove('approaching');
+            }
+        }
+
+        // Easing function for smooth animation
+        function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+
+        function makeSegmentAvailable(index) {
+            if (completedSegments.includes(index) || availableSegment === index) return;
+            
+            console.log(`🔔 Making segment ${index + 1} available!`);
+            
+            availableSegment = index;
+            const ring = document.getElementById('receiveRing');
+            ring.classList.add('ready', 'intense');
+            
+            const distantCircle = document.getElementById('distantCircle');
+            distantCircle.classList.add('intense');
+            
+            // Show moon at full glow immediately (no animation)
+            animateDistantCircle(1.0);
+            
+            // Log segment availability
+            EventLogger.log('SEGMENT_AVAILABLE', {
+                segmentIndex: index,
+                segmentNumber: index + 1,
+                scheduledTime: SEGMENTS[index].time
+            });
+        }
+
+        // Glow intensity is now handled directly in makeSegmentAvailable
+
+        // ==================== MESSAGE DISPLAY ====================
+        let messageCloseTimeout = null;
+
+        async function displayMessage(index) {
+            if (isDisplayingMessage) return;
+            isDisplayingMessage = true;
+
+            // Log segment click
+            EventLogger.log('SEGMENT_CLICKED', {
+                segmentIndex: index,
+                segmentNumber: index + 1,
+                clickTime: singaporeTime.toISOString()
+            });
+
+            const display = document.getElementById('messageDisplay');
+            const textElement = document.getElementById('messageText');
+            const ring = document.getElementById('receiveRing');
+            
+            ring.classList.remove('ready', 'intense');
+            document.getElementById('distantCircle').classList.remove('intense');
+            
+            // Hide distant circle during message display
+            resetDistantCircle();
+            
+            display.classList.add('active');
+            display.dataset.closeable = 'false'; // Not closeable during animation
+            
+            await conjureText(SEGMENTS[index].text, textElement);
+            
+            // Log message fully displayed
+            EventLogger.log('MESSAGE_DISPLAYED', {
+                segmentIndex: index,
+                segmentNumber: index + 1
+            });
+            
+            // Make message clickable to skip wait
+            let messageClicked = false;
+            display.style.cursor = 'pointer';
+            
+            const clickHandler = () => {
+                messageClicked = true;
+                display.style.cursor = 'default';
+            };
+            
+            display.addEventListener('click', clickHandler);
+            
+            // Wait for click or 2 minutes timeout
+            const displayTime = 120000; // 2 minutes
+            const startTime = Date.now();
+            
+            while (!messageClicked && (Date.now() - startTime) < displayTime) {
+                await sleep(100);
+            }
+            
+            // Clean up click handler
+            display.removeEventListener('click', clickHandler);
+            display.style.cursor = 'default';
+            
+            // Hide message
+            display.classList.remove('active');
+            
+            // Dramatic rune reveal
+            await dramaticRuneReveal(index);
+            
+            // Log completion
+            EventLogger.log('SEGMENT_COMPLETED', {
+                segmentIndex: index,
+                segmentNumber: index + 1
+            });
+            
+            completedSegments.push(index);
+            availableSegment = -1;
+            isDisplayingMessage = false;
+            
+            // If this was the final segment (index 3), transform to blog
+            if (index === 3) {
+                await sleep(2000); // Brief pause before transformation
+                transformToBlog();
+                return; // Don't check for next segment
+            }
+            
+            // Reset circle to normal position after message complete
+            resetDistantCircle();
+            
+            // Check for next segment (will start 2-hour animation if applicable)
+            checkSegmentAvailability();
+        }
+
+        function showRuneMessage(index) {
+            const display = document.getElementById('messageDisplay');
+            const textElement = document.getElementById('messageText');
+            
+            // Log rune click
+            EventLogger.log('RUNE_CLICKED', {
+                segmentIndex: index,
+                segmentNumber: index + 1
+            });
+            
+            textElement.textContent = SEGMENTS[index].text;
+            textElement.style.opacity = '1';
+            textElement.style.transition = '';
+            display.classList.add('active');
+            display.dataset.closeable = 'true'; // Closeable when opened from rune
+            
+            // Clear any existing timeout
+            if (messageCloseTimeout) {
+                clearTimeout(messageCloseTimeout);
+            }
+            
+            // Auto-close after 5 minutes
+            messageCloseTimeout = setTimeout(() => {
+                if (display.classList.contains('active') && display.dataset.closeable === 'true') {
+                    display.classList.remove('active');
+                }
+            }, 300000); // 5 minutes
+        }
+
+        // Close message overlay
+        document.getElementById('messageDisplay').addEventListener('click', function(e) {
+            // If clicking on the overlay itself (not message content) or if closeable
+            if (this.dataset.closeable === 'true') {
+                this.classList.remove('active');
+                if (messageCloseTimeout) {
+                    clearTimeout(messageCloseTimeout);
+                    messageCloseTimeout = null;
+                }
+            }
+        });
+
+        async function dramaticRuneReveal(index) {
+            const rune = document.querySelectorAll('.rune')[index];
+            
+            // Add dramatic reveal animation
+            rune.classList.add('dramatic-reveal');
+            rune.style.opacity = '1';
+            
+            // Wait for animation to complete
+            await sleep(3000);
+            
+            // Remove animation class and add permanent glow
+            rune.classList.remove('dramatic-reveal');
+            rune.classList.add('visible', 'permanent-glow');
+        }
+
+        async function conjureText(text, element) {
+            element.textContent = '';
+            element.style.opacity = '0';
+            
+            // Fade in container
+            setTimeout(() => {
+                element.style.transition = 'opacity 0.5s ease-in';
+                element.style.opacity = '1';
+            }, 100);
+            
+            await sleep(600);
+            
+            // Show gibberish for 5-7 seconds
+            const gibberishDuration = 5000 + Math.random() * 2000; // 5-7 seconds
+            const gibberishChars = 'αβγδεζηθικλμνξοπρστυφχψω∴∵∞∑∏∫√∂∇ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ';
+            const startTime = Date.now();
+            
+            // Gibberish animation
+            const gibberishInterval = setInterval(() => {
+                let gibberish = '';
+                const lines = Math.floor(Math.random() * 3) + 8; // 8-10 lines of gibberish
+                for (let i = 0; i < lines; i++) {
+                    const lineLength = Math.floor(Math.random() * 30) + 40; // 40-70 chars per line
+                    for (let j = 0; j < lineLength; j++) {
+                        gibberish += gibberishChars[Math.floor(Math.random() * gibberishChars.length)];
+                    }
+                    gibberish += '\n';
+                }
+                element.textContent = gibberish;
+            }, 80); // Update every 80ms
+            
+            // Wait for gibberish duration
+            await sleep(gibberishDuration);
+            
+            // Stop gibberish
+            clearInterval(gibberishInterval);
+            
+            // Shake animation
+            element.style.animation = 'messageShake 0.4s ease-in-out';
+            await sleep(400);
+            
+            // Reveal full text instantly
+            element.textContent = text;
+            element.style.animation = '';
+        }
+
+        // ==================== RUNE INTERACTION ====================
+        document.querySelectorAll('.rune').forEach(rune => {
+            rune.addEventListener('click', function() {
+                const index = parseInt(this.dataset.segment);
+                if (completedSegments.includes(index)) {
+                    showRuneMessage(index);
+                }
+            });
+        });
+
+        // ==================== RING CLICK ====================
+        document.getElementById('frontRing').addEventListener('click', function() {
+            if (availableSegment !== -1 && !isDisplayingMessage) {
+                displayMessage(availableSegment);
+            }
+        });
+
+        // ==================== SPECIAL EVENTS ====================
+        function checkSpecialEvents() {
+            if (isBlogMode) return;
+
+            // Check if it's October 21, 2025
+            const date = singaporeTime.getDate();
+            const month = singaporeTime.getMonth() + 1;
+            const year = singaporeTime.getFullYear();
+            
+            if (!(year === 2025 && month === 10 && date === 21)) return;
+
+            const hour = singaporeTime.getHours();
+            const minute = singaporeTime.getMinutes();
+            
+            // 06:00-06:29 - Full red mode (only if page is open during this time)
+            if (hour === 6 && minute >= 0 && minute < 30) {
+                if (!document.body.classList.contains('red-mode')) {
+                    activateRedMode();
+                }
+            }
+            
+            // 06:30 or later - End red
+            else if (hour === 6 && minute >= 30) {
+                if (document.body.classList.contains('red-mode')) {
+                    deactivateRedMode();
+                }
+            }
+        }
+
+        function activateRedMode() {
+            document.body.classList.add('red-mode');
+            resetDistantCircle();
+            startShootingRings();
+            EventLogger.log('RED_MODE_ACTIVATED');
+            console.log('🔴 Full red mode activated');
+        }
+
+        function startShootingRings() {
+            const container = document.querySelector('.summoning-area');
+            
+            shootingInterval = setInterval(() => {
+                if (!document.body.classList.contains('red-mode')) {
+                    clearInterval(shootingInterval);
+                    return;
+                }
+                
+                const ring = document.createElement('div');
+                ring.className = 'shooting-ring';
+                container.appendChild(ring);
+                
+                setTimeout(() => ring.remove(), 2500);
+            }, 600);
+        }
+
+        function deactivateRedMode() {
+            document.body.classList.remove('red-mode');
+            isRedMode = false;
+            if (shootingInterval) {
+                clearInterval(shootingInterval);
+                shootingInterval = null;
+            }
+            EventLogger.log('RED_MODE_DEACTIVATED');
+            console.log('✅ Red mode ended');
+        }
+
+        function transformToBlog() {
+            isBlogMode = true;
+            document.body.classList.add('blog-mode');
+            
+            // Save to localStorage for persistence
+            localStorage.setItem('isBlogMode', 'true');
+            
+            EventLogger.log('BLOG_TRANSFORM', {
+                completedSegments: completedSegments.length
+            });
+            
+            const content = document.getElementById('blogContent');
+            SEGMENTS.forEach((segment) => {
+                const lines = segment.text.split('\n\n');
+                
+                lines.forEach((line, i) => {
+                    if (i === 0) {
+                        const h2 = document.createElement('h2');
+                        h2.textContent = line;
+                        content.appendChild(h2);
+                    } else if (line.includes('Majko što')) {
+                        const chant = document.createElement('div');
+                        chant.className = 'chant';
+                        chant.textContent = line;
+                        content.appendChild(chant);
+                    } else {
+                        const p = document.createElement('p');
+                        p.textContent = line;
+                        content.appendChild(p);
+                    }
+                });
+            });
+            
+            console.log('📄 Transformed to blog (permanent)');
+        }
+
+        // ==================== UTILITY ====================
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ==================== MAIN LOOP ====================
+        async function mainLoop() {
+            singaporeTime = await getSingaporeTime();
+            
+            updateClocks();
+            checkSegmentAvailability();
+            checkSpecialEvents();
+        }
+
+        // ==================== INITIALIZATION ====================
+        window.addEventListener('load', async () => {
+            createStars();
+            
+            singaporeTime = await getSingaporeTime();
+            updateClocks();
+            
+            // Check if blog mode was previously activated
+            if (isBlogMode) {
+                transformToBlog();
+                console.log('✨ Page initialized (Blog mode restored)');
+                return; // Skip main loop and ghost quotes in blog mode
+            }
+            
+            // Immediately check for available segments on load
+            checkSegmentAvailability();
+            
+            setInterval(mainLoop, 1000);
+            
+            setInterval(showGhostQuote, 10000); // Every 10 seconds - more frequent
+            setTimeout(showGhostQuote, 3000);
+            
+            console.log('✨ Page initialized');
+            console.log('Current Singapore time:', singaporeTime.toLocaleString());
+        });
+    </script>
+</body>
+</html>
